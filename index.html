@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Andrew Corretor — imóveis em Itaúna e região de Minas Gerais.">
+<meta name="theme-color" content="#111111">
+<title>Andrew Corretor | Imóveis em Itaúna e região</title>
+<style>
+:root{--bg:#101010;--panel:#191919;--gold:#c9a45c;--gold2:#e2c17d;--white:#f8f7f4;--muted:#b9b5ad;--line:#38342c}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--white);font:16px/1.55 Arial,Helvetica,sans-serif}a{color:inherit;text-decoration:none}.wrap{width:min(1120px,92%);margin:auto}
+header{position:sticky;top:0;z-index:10;background:#101010f5;border-bottom:1px solid var(--line)}.nav{min-height:76px;display:flex;justify-content:space-between;align-items:center;gap:20px}.brand{font-weight:800;letter-spacing:.7px;font-size:1.15rem}.brand span{color:var(--gold)}nav{display:flex;gap:22px;flex-wrap:wrap;font-size:.92rem}nav a:hover{color:var(--gold)}
+.btn{display:inline-block;border:0;border-radius:4px;background:var(--gold);color:#17130b;padding:13px 20px;font-weight:700;cursor:pointer}.btn:hover{background:var(--gold2)}.btn.secondary{background:transparent;color:var(--gold);border:1px solid var(--gold)}
+.hero{padding:84px 0 60px;background:radial-gradient(ellipse at 85% 10%,#594629 0,transparent 42%),linear-gradient(110deg,#101010,#1a1712)}.eyebrow{color:var(--gold);font-size:.76rem;font-weight:700;letter-spacing:2.5px;text-transform:uppercase}h1{font-size:clamp(2.45rem,6vw,4.6rem);line-height:1.08;max-width:780px;margin:14px 0}h1 span{color:var(--gold)}.hero p{max-width:650px;color:#ddd;font-size:1.1rem}.hero-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:25px}
+.search{position:relative;margin-top:-2px;padding:0 0 68px}.search-card{background:#f7f4ee;color:#171717;border-radius:9px;padding:26px;box-shadow:0 15px 45px #0005}.search-card h2{margin:0 0 5px;font-size:1.65rem}.sub{color:#666;margin:0 0 20px}.fields{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.field label{display:block;font-size:.82rem;font-weight:700;margin-bottom:6px}.field select,.field input{width:100%;height:46px;border:1px solid #d5d0c6;border-radius:4px;padding:0 11px;background:white;color:#222;font-size:.95rem}.field.wide{grid-column:span 2}.search-bottom{display:flex;justify-content:space-between;align-items:center;gap:15px;flex-wrap:wrap;margin-top:18px}.hint{font-size:.8rem;color:#68645d;max-width:590px}
+section.content{padding:68px 0}.light{background:#f5f2eb;color:#171717}.section-head{text-align:center;max-width:720px;margin:0 auto 32px}.section-head p{color:#69655e}.section-head h2{font-size:clamp(1.8rem,4vw,2.5rem);margin:8px 0}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:17px}.category{padding:22px;background:#201e1a;border:1px solid #39342a;border-radius:7px}.category .ico{font-size:1.7rem;color:var(--gold)}.category h3{margin:8px 0 3px}.category p{margin:0;color:#c7c2b9;font-size:.92rem}
+.listing-placeholder{padding:28px;border:1px dashed #8c774e;border-radius:7px;text-align:center;color:#5f594f;background:#fff}.listing-placeholder strong{display:block;color:#27231b;font-size:1.08rem;margin-bottom:5px}
+.about{display:grid;grid-template-columns:1.1fr .9fr;gap:35px;align-items:center}.about p{color:#c9c5bd}.about-box{padding:28px;border:1px solid #51442e;border-radius:7px;background:#1c1a16}.about-box strong{font-size:1.3rem;color:var(--gold)}
+.contact{text-align:center;background:linear-gradient(120deg,#292116,#111 72%)}.contact p{max-width:630px;color:#d1ccc2;margin:12px auto 24px}
+footer{border-top:1px solid #333;padding:25px 0;color:#aaa;font-size:.85rem}.foot{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+@media(max-width:800px){.fields{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:repeat(2,1fr)}.about{grid-template-columns:1fr}.nav{align-items:flex-start;flex-direction:column;padding:15px 0}nav{gap:14px}}
+@media(max-width:520px){.fields,.grid{grid-template-columns:1fr}.field.wide{grid-column:span 1}.hero{padding:65px 0 48px}.search-card{padding:19px}.search-bottom .btn{width:100%;text-align:center}}
+</style>
+</head>
+<body>
+<header><div class="wrap nav">
+<a class="brand" href="#inicio">ANDREW <span>CORRETOR</span></a>
+<nav aria-label="Navegação"><a href="#pesquisa">Buscar imóveis</a><a href="#categorias">Categorias</a><a href="#sobre">Sobre</a><a href="#contato">Contato</a></nav>
+</div></header>
+<main>
+<section class="hero" id="inicio"><div class="wrap">
+<div class="eyebrow">Itaúna e região • Minas Gerais</div>
+<h1>O imóvel certo para uma nova <span>conquista.</span></h1>
+<p>Encontre oportunidades para comprar ou alugar. Atendimento próximo, transparência e acompanhamento em cada etapa.</p>
+<div class="hero-actions"><a class="btn" href="#pesquisa">Encontrar um imóvel</a><a class="btn secondary" href="#contato">Quero anunciar meu imóvel</a></div>
+</div></section>
+
+<section class="search" id="pesquisa"><div class="wrap"><div class="search-card">
+<h2>Encontre seu imóvel</h2><p class="sub">Escolha os filtros e encontre oportunidades na região.</p>
+<form id="searchForm">
+<div class="fields">
+<div class="field wide"><label for="cidade">Cidade</label><select id="cidade" name="cidade"><option value="">Todas as cidades</option><option>Itaúna</option><option>Itatiaiuçu</option><option>Igarapé</option><option>Serra Azul</option><option>Mateus Leme</option><option>Juatuba</option><option>Betim</option><option>Sarzedo</option><option>Rio Manso</option><option>Belo Horizonte</option></select></div>
+<div class="field"><label for="finalidade">Finalidade</label><select id="finalidade" name="finalidade"><option value="">Comprar ou alugar</option><option>Comprar</option><option>Alugar</option></select></div>
+<div class="field"><label for="tipo">Tipo de imóvel</label><select id="tipo" name="tipo"><option value="">Todos os tipos</option><option>Casa</option><option>Apartamento</option><option>Terreno</option><option>Lote</option><option>Fazenda</option><option>Sítio</option><option>Chácara</option></select></div>
+<div class="field"><label for="minimo">Valor mínimo (R$)</label><input id="minimo" name="minimo" type="number" min="0" step="1000" placeholder="Ex.: 100000"></div>
+<div class="field"><label for="maximo">Valor máximo (R$)</label><input id="maximo" name="maximo" type="number" min="0" step="1000" placeholder="Ex.: 500000"></div>
+</div>
+<div class="search-bottom"><span class="hint">Atendimento nas 10 cidades selecionadas. A busca por distância de até 100 km será aplicada aos imóveis quando o cadastro e a localização estiverem integrados ao sistema.</span><button class="btn" type="submit">Pesquisar imóveis</button></div>
+</form>
+</div></div></section>
+
+<section class="content light" id="categorias"><div class="wrap">
+<div class="section-head"><div class="eyebrow">Encontre o que procura</div><h2>Imóveis para cada plano de vida</h2><p>Casas, apartamentos, propriedades rurais e terrenos em Itaúna e nas cidades atendidas.</p></div>
+<div class="grid">
+<article class="category"><div class="ico">⌂</div><h3>Casas</h3><p>Espaço para construir novas histórias.</p></article>
+<article class="category"><div class="ico">▥</div><h3>Apartamentos</h3><p>Praticidade e conforto no dia a dia.</p></article>
+<article class="category"><div class="ico">♧</div><h3>Sítios e chácaras</h3><p>Tranquilidade e contato com a natureza.</p></article>
+<article class="category"><div class="ico">▱</div><h3>Terrenos e lotes</h3><p>Oportunidades para tirar projetos do papel.</p></article>
+<article class="category"><div class="ico">⌁</div><h3>Fazendas</h3><p>Áreas rurais e oportunidades de investimento.</p></article>
+<article class="category"><div class="ico">＋</div><h3>Novas oportunidades</h3><p>Converse comigo sobre o imóvel que procura.</p></article>
+</div></div></section>
+
+<section class="content" id="imoveis"><div class="wrap">
+<div class="section-head"><div class="eyebrow">Vitrine imobiliária</div><h2>Imóveis em destaque</h2><p>Os anúncios cadastrados aparecerão aqui com fotos, código, descrição e preço.</p></div>
+<div class="listing-placeholder"><strong>Estamos preparando a vitrine de imóveis.</strong>Assim que a área administrativa e o banco de dados estiverem conectados, seus anúncios serão exibidos aqui automaticamente.</div>
+</div></section>
+
+<section class="content light" id="sobre"><div class="wrap about">
+<div><div class="eyebrow">Andrew Corretor</div><h2>Cada cliente é único, cada conquista importa.</h2><p>Comprar ou vender um imóvel é uma decisão importante. Meu compromisso é oferecer atendimento organizado, comunicação transparente e acompanhamento cuidadoso durante a negociação.</p><p>Atendimento em Itaúna e nas cidades da região.</p></div>
+<div class="about-box"><strong>Confiança em cada etapa.</strong><p>Informação clara, divulgação do imóvel e acompanhamento próximo para ajudar você a tomar decisões com mais segurança.</p></div>
+</div></section>
+
+<section class="content contact" id="contato"><div class="wrap">
+<div class="eyebrow">Vamos conversar?</div><h2>Quer comprar, alugar ou anunciar um imóvel?</h2><p>Fale diretamente comigo pelo WhatsApp ou acompanhe os imóveis e novidades no Instagram.</p>
+<div class="hero-actions" style="justify-content:center"><a class="btn" href="https://wa.me/5537991198709" target="_blank" rel="noopener">WhatsApp: (37) 99119-8709</a><a class="btn secondary" href="https://www.instagram.com/andrew_corretor_/" target="_blank" rel="noopener">Instagram: @andrew_corretor_</a></div>
+</div></section>
+</main>
+<footer><div class="wrap foot"><span>© <span id="year"></span> Andrew Corretor.</span><span>Itaúna e região • Minas Gerais</span></div></footer>
+<script>
+document.getElementById('year').textContent = new Date().getFullYear();
+document.getElementById('searchForm').addEventListener('submit', function(e){
+  e.preventDefault();
+  const min=document.getElementById('minimo').value, max=document.getElementById('maximo').value;
+  if(min && max && Number(min)>Number(max)){alert('O valor mínimo não pode ser maior que o valor máximo.');return;}
+  alert('Os filtros da página estão preparados. A pesquisa de anúncios será ativada quando conectarmos o banco de dados e o cadastro de imóveis.');
+});
+</script>
+</body></html>
