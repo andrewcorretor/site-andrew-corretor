@@ -15,13 +15,14 @@
   const SUPABASE_KEY =
     'sb_publishable_E-rC-JV_EJRjHH1V_guhAA_kZ7dxfMo';
 
+  const STORAGE_BUCKET = 'imoveis';
   const WHATSAPP = '5537991198709';
 
   let db = null;
   let todosImoveis = [];
 
   /* =========================================
-     CARREGAR SUPABASE
+     CARREGAR BIBLIOTECA SUPABASE
   ========================================= */
 
   function carregarBiblioteca() {
@@ -36,7 +37,13 @@
       script.src =
         'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
 
-      script.onload = resolve;
+      script.onload = function () {
+        if (window.supabase && window.supabase.createClient) {
+          resolve();
+        } else {
+          reject(new Error('Biblioteca Supabase indisponível.'));
+        }
+      };
 
       script.onerror = function () {
         reject(new Error('Não foi possível carregar o Supabase.'));
@@ -88,20 +95,9 @@
     });
   }
 
-  function obterFoto(imovel) {
-    const foto = imovel.foto_principal;
-
-    if (!foto || typeof foto !== 'string') return '';
-
-    try {
-      const url = new URL(foto);
-
-      if (url.protocol === 'https:' || url.protocol === 'http:') {
-        return url.href;
-      }
-    } catch (e) {}
-
-    return '';
+  function mensagemWhatsApp(texto) {
+    return 'https://wa.me/' + WHATSAPP +
+      '?text=' + encodeURIComponent(texto);
   }
 
   function filtroTodos(valor) {
@@ -110,9 +106,9 @@
     return !v ||
       v === 'todos' ||
       v === 'todas' ||
-      v.includes('todas as cidades') ||
-      v.includes('todos os tipos') ||
-      v.includes('todas as finalidades');
+      v === 'todos os tipos' ||
+      v === 'todas as cidades' ||
+      v === 'todas as finalidades';
   }
 
   function finalidadeCompativel(valor, filtro) {
@@ -132,17 +128,130 @@
     return v === f;
   }
 
-  function mensagemWhatsApp(texto) {
-    return 'https://wa.me/' + WHATSAPP +
-      '?text=' + encodeURIComponent(texto);
+  /* =========================================
+     FOTOS — SUPABASE STORAGE
+  ========================================= */
+
+  function validarUrl(valor) {
+    if (typeof valor !== 'string' || !valor.trim()) {
+      return '';
+    }
+
+    try {
+      const url = new URL(valor.trim());
+
+      if (
+        url.protocol === 'https:' ||
+        url.protocol === 'http:'
+      ) {
+        return url.href;
+      }
+    } catch (e) {}
+
+    return '';
+  }
+
+  function resolverFoto(valor) {
+    if (!valor) return '';
+
+    if (typeof valor === 'object') {
+      valor =
+        valor.url ||
+        valor.src ||
+        valor.path ||
+        valor.name ||
+        '';
+    }
+
+    if (typeof valor !== 'string' || !valor.trim()) {
+      return '';
+    }
+
+    valor = valor.trim();
+
+    const url = validarUrl(valor);
+
+    if (url) return url;
+
+    if (!db) return '';
+
+    try {
+      let caminho = valor;
+
+      if (caminho.startsWith(STORAGE_BUCKET + '/')) {
+        caminho = caminho.slice(STORAGE_BUCKET.length + 1);
+      }
+
+      const resultado = db.storage
+        .from(STORAGE_BUCKET)
+        .getPublicUrl(caminho);
+
+      return resultado.data?.publicUrl || '';
+
+    } catch (e) {
+      console.error('Erro ao resolver foto:', e);
+      return '';
+    }
+  }
+
+  function obterFoto(imovel) {
+    let foto = resolverFoto(imovel.foto_principal);
+
+    if (foto) return foto;
+
+    let fotos = imovel.fotos;
+
+    if (typeof fotos === 'string') {
+      try {
+        fotos = JSON.parse(fotos);
+      } catch (e) {
+        fotos = [fotos];
+      }
+    }
+
+    if (!Array.isArray(fotos)) {
+      fotos = fotos ? [fotos] : [];
+    }
+
+    for (const item of fotos) {
+      foto = resolverFoto(item);
+
+      if (foto) return foto;
+    }
+
+    return '';
   }
 
   /* =========================================
-     ESTILOS DA VITRINE E DO ANÚNCIO
+     VERIFICAR STATUS DE PUBLICAÇÃO
+  ========================================= */
+
+  function imovelPublicado(imovel) {
+    const status = normalizar(imovel.status);
+
+    if (!status) return true;
+
+    const permitidos = [
+      'disponivel',
+      'disponível',
+      'ao vivo',
+      'publicado',
+      'publicada',
+      'ativo',
+      'ativa'
+    ];
+
+    return permitidos.includes(status);
+  }
+
+  /* =========================================
+     ESTILOS DA VITRINE E ANÚNCIO
   ========================================= */
 
   function prepararEstilos() {
-    if (document.getElementById('estilo-andrew-atualizado')) return;
+    if (document.getElementById('estilo-andrew-atualizado')) {
+      return;
+    }
 
     const estilo = document.createElement('style');
 
@@ -184,7 +293,7 @@
       .listing-photo-empty {
         display: grid;
         place-items: center;
-        color: var(--gold);
+        color: var(--gold,#c6a15b);
         font-size: 2.5rem;
       }
 
@@ -241,6 +350,9 @@
       }
 
       .listing-card .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
         width: 100%;
         margin-top: 5px;
       }
@@ -268,8 +380,6 @@
         font-size: .85rem;
         margin-bottom: 20px;
       }
-
-      /* ANUNCIE SEU IMÓVEL */
 
       .anuncio-etapas {
         display: grid;
@@ -474,7 +584,9 @@
 
     const contato = colunas[colunas.length - 1];
 
-    if (!contato || contato.querySelector('.admin-footer-link')) return;
+    if (!contato || contato.querySelector('.admin-footer-link')) {
+      return;
+    }
 
     const link = document.createElement('a');
 
@@ -490,7 +602,43 @@
   ========================================= */
 
   function prepararVitrine() {
-    const area = document.querySelector('.listing-placeholder');
+    let area = document.querySelector('.listing-placeholder');
+
+    if (!area) {
+      const elementos = document.querySelectorAll('p, div');
+
+      for (const elemento of elementos) {
+        const texto = (elemento.textContent || '').toLowerCase();
+
+        if (
+          texto.includes('os filtros da página estão preparados') &&
+          !Array.from(elemento.children).some(function (filho) {
+            return (filho.textContent || '').toLowerCase()
+              .includes('os filtros da página estão preparados');
+          })
+        ) {
+          area = elemento;
+          break;
+        }
+      }
+    }
+
+    if (!area) {
+      area = document.getElementById('listingGrid');
+
+      if (area) {
+        area.innerHTML = '';
+      }
+    }
+
+    if (!area) {
+      const secao = document.getElementById('imoveis');
+
+      if (secao) {
+        area = document.createElement('div');
+        secao.appendChild(area);
+      }
+    }
 
     if (!area) {
       console.error('Área da vitrine não encontrada.');
@@ -503,12 +651,10 @@
       <div id="listingCount" class="listing-count"></div>
 
       <div id="listingGrid" class="listing-grid">
-
         <div class="listing-message">
           <strong>Carregando imóveis...</strong>
           Aguarde enquanto buscamos os anúncios disponíveis.
         </div>
-
       </div>
     `;
   }
@@ -550,15 +696,18 @@
       const preco = formatarPreco(imovel.preco);
 
       const quartos = Number(imovel.quartos) || 0;
-      const banheiros = Number(imovel.banheiros) || 0;
+
+      const banheiros =
+        Number(imovel.banhos ?? imovel.banheiros) || 0;
+
       const vagas = Number(imovel.vagas) || 0;
       const area = Number(imovel.area) || 0;
 
       const finalidade = escapar(imovel.finalidade || '');
 
-      const descricao = escapar(imovel.descricao || '');
-
-      const codigo = escapar(imovel.id);
+      const descricao = escapar(
+        imovel.descricao || imovel.especificacao || ''
+      );
 
       const localizacao = [bairro, cidade]
         .filter(Boolean)
@@ -589,7 +738,10 @@
                   src="${escapar(foto)}"
                   alt="${titulo}"
                   loading="lazy"
-                  onerror="this.style.display='none';this.nextElementSibling.style.display='grid';"
+                  onerror="
+                    this.style.display='none';
+                    this.nextElementSibling.style.display='grid';
+                  "
                 >
               `
               : ''
@@ -668,16 +820,12 @@
   }
 
   /* =========================================
-     BUSCAR IMÓVEIS PUBLICADOS
+     BUSCAR IMÓVEIS NO SUPABASE
   ========================================= */
 
   async function carregarImoveis() {
-    const grid = document.getElementById('listingGrid');
-
     if (!db) {
-      mostrarErro(
-        'Não foi possível conectar ao banco de dados.'
-      );
+      mostrarErro('Não foi possível conectar ao banco de dados.');
       return;
     }
 
@@ -685,14 +833,18 @@
       const resultado = await db
         .from('imoveis')
         .select('*')
-        .eq('status', 'ao vivo')
         .order('created_at', { ascending: false });
 
       if (resultado.error) {
         throw resultado.error;
       }
 
-      todosImoveis = resultado.data || [];
+      const recebidos = resultado.data || [];
+
+      todosImoveis = recebidos.filter(imovelPublicado);
+
+      console.log('Imóveis recebidos:', recebidos.length);
+      console.log('Imóveis publicados:', todosImoveis.length);
 
       mostrarImoveis(todosImoveis);
 
@@ -700,7 +852,7 @@
       console.error('Erro ao carregar imóveis:', erro);
 
       mostrarErro(
-        'Não foi possível carregar os imóveis. Verifique as permissões da tabela no Supabase.'
+        'Não foi possível carregar os imóveis. Verifique as permissões de leitura da tabela no Supabase.'
       );
     }
   }
@@ -722,7 +874,7 @@
   }
 
   /* =========================================
-     FILTROS
+     FILTROS DE PESQUISA
   ========================================= */
 
   function prepararFiltros() {
@@ -741,12 +893,20 @@
     form.addEventListener('submit', function (e) {
       e.preventDefault();
 
-      const cidade = document.getElementById('cidade')?.value || '';
-      const finalidade = document.getElementById('finalidade')?.value || '';
-      const tipo = document.getElementById('tipo')?.value || '';
+      const cidade =
+        document.getElementById('cidade')?.value || '';
 
-      const minimo = document.getElementById('minimo')?.value || '';
-      const maximo = document.getElementById('maximo')?.value || '';
+      const finalidade =
+        document.getElementById('finalidade')?.value || '';
+
+      const tipo =
+        document.getElementById('tipo')?.value || '';
+
+      const minimo =
+        document.getElementById('minimo')?.value || '';
+
+      const maximo =
+        document.getElementById('maximo')?.value || '';
 
       if (
         minimo &&
@@ -888,7 +1048,7 @@
   }
 
   /* =========================================
-     CABEÇALHO E WHATSAPP
+     CABEÇALHO E WHATSAPP FLUTUANTE
   ========================================= */
 
   function prepararCabecalho() {
@@ -906,7 +1066,6 @@
         const visivel = y > 600;
 
         whatsapp.classList.toggle('show', visivel);
-
         whatsapp.tabIndex = visivel ? 0 : -1;
       }
     }
