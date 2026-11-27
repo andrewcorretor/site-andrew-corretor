@@ -5,7 +5,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin | Andrew Corretor</title>
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
@@ -27,14 +26,13 @@ button{padding:12px 18px;border:0;border-radius:6px;cursor:pointer;font-weight:b
 .property{border:1px solid #ddd;padding:16px;margin-top:15px;border-radius:8px}
 .property img{width:100%;max-height:220px;object-fit:cover;border-radius:6px}
 .hidden{display:none}
-.message{padding:12px;margin:10px 0;border-radius:6px;background:#eee}
+.message{padding:12px;margin:10px 0;border-radius:6px;background:#eee;overflow-wrap:anywhere}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 @media(max-width:600px){.grid{grid-template-columns:1fr}}
 </style>
 </head>
 
 <body>
-
 <header>
 <h1>Andrew Corretor</h1>
 <p>Painel Administrativo</p>
@@ -44,13 +42,10 @@ button{padding:12px 18px;border:0;border-radius:6px;cursor:pointer;font-weight:b
 
 <section class="card" id="loginBox">
 <h2>Acesso administrativo</h2>
-
 <label>E-mail</label>
-<input type="email" id="email" placeholder="Seu e-mail" required>
-
+<input type="email" id="email" placeholder="Seu e-mail">
 <label>Senha</label>
-<input type="password" id="password" placeholder="Sua senha" required>
-
+<input type="password" id="password" placeholder="Sua senha">
 <button class="primary" id="loginBtn">Entrar</button>
 <div id="loginMessage" class="message hidden"></div>
 </section>
@@ -67,12 +62,13 @@ button{padding:12px 18px;border:0;border-radius:6px;cursor:pointer;font-weight:b
 <h2 id="formTitle">Cadastrar novo imóvel</h2>
 
 <form id="propertyForm">
-
 <input type="hidden" id="propertyId">
 
-<label>Nome do imóvel</label>
-<input id="nome" required placeholder="Ex.: Casa no bairro Santa Edwiges">
+<label>Título do imóvel</label>
+<input id="titulo" required placeholder="Ex.: Casa no bairro Santa Edwiges">
 
+<div class="grid">
+<div>
 <label>Tipo de imóvel</label>
 <select id="tipo">
 <option>Casa</option>
@@ -83,9 +79,26 @@ button{padding:12px 18px;border:0;border-radius:6px;cursor:pointer;font-weight:b
 <option>Lote</option>
 <option>Terreno</option>
 </select>
+</div>
+<div>
+<label>Finalidade</label>
+<select id="finalidade">
+<option value="Venda">Venda</option>
+<option value="Aluguel">Aluguel</option>
+</select>
+</div>
+</div>
 
-<label>Localização</label>
-<input id="localizacao" required placeholder="Cidade e bairro">
+<div class="grid">
+<div>
+<label>Cidade</label>
+<input id="cidade" required placeholder="Ex.: Itaúna">
+</div>
+<div>
+<label>Bairro ou região</label>
+<input id="bairro" placeholder="Ex.: Santa Edwiges">
+</div>
+</div>
 
 <label>Preço (R$)</label>
 <input id="preco" type="number" min="0" step="0.01" required>
@@ -104,8 +117,16 @@ button{padding:12px 18px;border:0;border-radius:6px;cursor:pointer;font-weight:b
 </div>
 </div>
 
+<div class="grid">
+<div>
+<label>Vagas de garagem</label>
+<input id="vagas" type="number" min="0" value="0">
+</div>
+<div>
 <label>Área (m²)</label>
 <input id="area" type="number" min="0" step="0.01">
+</div>
+</div>
 
 <label>Foto principal (URL)</label>
 <input id="foto_principal" type="url" placeholder="https://...">
@@ -119,8 +140,8 @@ button{padding:12px 18px;border:0;border-radius:6px;cursor:pointer;font-weight:b
 
 <button type="submit" class="primary" id="saveBtn">Cadastrar imóvel</button>
 <button type="button" class="gold hidden" id="cancelBtn">Cancelar edição</button>
-
 </form>
+
 <div id="formMessage" class="message hidden"></div>
 </div>
 
@@ -136,14 +157,10 @@ button{padding:12px 18px;border:0;border-radius:6px;cursor:pointer;font-weight:b
 const SUPABASE_URL = "https://gvcqmrkievpxqshfmfaj.supabase.co";
 const SUPABASE_KEY = "sb_publishable_E-rC-JV_EJRjHH1V_guhAA_kZ7dxfMo";
 
-const db = window.supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_KEY
-);
-
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const $ = id => document.getElementById(id);
 
-function message(id, text) {
+function showMessage(id, text) {
   $(id).textContent = text;
   $(id).classList.remove("hidden");
 }
@@ -153,21 +170,6 @@ function money(value) {
     style: "currency",
     currency: "BRL"
   });
-}
-
-async function checkSession() {
-  const { data, error } = await db.auth.getSession();
-
-  if (error) {
-    message("loginMessage", error.message);
-    return;
-  }
-
-  if (data.session) {
-    showDashboard(data.session.user);
-  } else {
-    showLogin();
-  }
 }
 
 function showLogin() {
@@ -182,30 +184,39 @@ async function showDashboard(user) {
   await loadProperties();
 }
 
+async function checkSession() {
+  const {data, error} = await db.auth.getSession();
+  if (error) {
+    showMessage("loginMessage", error.message);
+    return;
+  }
+  if (data.session) await showDashboard(data.session.user);
+  else showLogin();
+}
+
 $("loginBtn").addEventListener("click", async () => {
   const email = $("email").value.trim();
   const password = $("password").value;
 
   if (!email || !password) {
-    message("loginMessage", "Preencha e-mail e senha.");
+    showMessage("loginMessage", "Preencha e-mail e senha.");
     return;
   }
 
   $("loginBtn").disabled = true;
 
-  const { data, error } = await db.auth.signInWithPassword({
-    email,
-    password
+  const {data, error} = await db.auth.signInWithPassword({
+    email, password
   });
 
   $("loginBtn").disabled = false;
 
   if (error) {
-    message("loginMessage", "Erro no acesso: " + error.message);
+    showMessage("loginMessage", "Erro no acesso: " + error.message);
     return;
   }
 
-  showDashboard(data.user);
+  await showDashboard(data.user);
 });
 
 $("logoutBtn").addEventListener("click", async () => {
@@ -219,13 +230,16 @@ $("propertyForm").addEventListener("submit", async event => {
   const id = $("propertyId").value;
 
   const property = {
-    nome: $("nome").value.trim(),
+    titulo: $("titulo").value.trim(),
     tipo: $("tipo").value,
-    localizacao: $("localizacao").value.trim(),
+    finalidade: $("finalidade").value,
+    cidade: $("cidade").value.trim(),
+    bairro: $("bairro").value.trim(),
     preco: Number($("preco").value),
     descricao: $("descricao").value.trim(),
     quartos: Number($("quartos").value || 0),
     banheiros: Number($("banheiros").value || 0),
+    vagas: Number($("vagas").value || 0),
     area: $("area").value ? Number($("area").value) : null,
     foto_principal: $("foto_principal").value.trim() || null,
     status: $("status").value
@@ -233,33 +247,32 @@ $("propertyForm").addEventListener("submit", async event => {
 
   $("saveBtn").disabled = true;
 
-  let result;
-
-  if (id) {
-    result = await db.from("imoveis").update(property).eq("id", id);
-  } else {
-    result = await db.from("imoveis").insert([property]);
-  }
+  const result = id
+    ? await db.from("imoveis").update(property).eq("id", id)
+    : await db.from("imoveis").insert([property]);
 
   $("saveBtn").disabled = false;
 
   if (result.error) {
-    message("formMessage", "Erro ao salvar: " + result.error.message);
+    showMessage("formMessage", "Erro ao salvar: " + result.error.message);
     return;
   }
 
-  message("formMessage", id ? "Imóvel atualizado!" : "Imóvel cadastrado!");
+  showMessage("formMessage", id
+    ? "Imóvel atualizado com sucesso!"
+    : "Imóvel cadastrado com sucesso!");
+
   resetForm();
   await loadProperties();
 });
 
 async function loadProperties() {
-  $("propertyList").textContent = "Carregando...";
+  $("propertyList").textContent = "Carregando imóveis...";
 
-  const { data, error } = await db
+  const {data, error} = await db
     .from("imoveis")
     .select("*")
-    .order("id", { ascending: false });
+    .order("id", {ascending: false});
 
   if (error) {
     $("propertyList").textContent = "Erro ao carregar: " + error.message;
@@ -273,29 +286,31 @@ async function loadProperties() {
     return;
   }
 
-  data.forEach(property => {
+  data.forEach(p => {
     const card = document.createElement("div");
     card.className = "property";
 
     const title = document.createElement("h3");
-    title.textContent = property.nome;
+    title.textContent = p.titulo || "Imóvel sem título";
 
     const details = document.createElement("p");
     details.textContent =
-      property.localizacao + " | " + money(property.preco);
+      [p.cidade, p.bairro].filter(Boolean).join(" - ") +
+      " | " + money(p.preco);
 
-    const status = document.createElement("p");
-    status.textContent = "Status: " + property.status;
+    const info = document.createElement("p");
+    info.textContent =
+      p.tipo + " | " + p.finalidade + " | Status: " + p.status;
 
     const description = document.createElement("p");
-    description.textContent = property.descricao || "";
+    description.textContent = p.descricao || "";
 
-    card.append(title, details, status, description);
+    card.append(title, details, info, description);
 
-    if (property.foto_principal) {
+    if (p.foto_principal) {
       const img = document.createElement("img");
-      img.src = property.foto_principal;
-      img.alt = property.nome;
+      img.src = p.foto_principal;
+      img.alt = p.titulo || "Foto do imóvel";
       img.onerror = () => img.remove();
       card.appendChild(img);
     }
@@ -303,12 +318,12 @@ async function loadProperties() {
     const edit = document.createElement("button");
     edit.className = "gold";
     edit.textContent = "Editar";
-    edit.addEventListener("click", () => editProperty(property));
+    edit.onclick = () => editProperty(p);
 
     const remove = document.createElement("button");
     remove.className = "danger";
     remove.textContent = "Excluir";
-    remove.addEventListener("click", () => deleteProperty(property.id));
+    remove.onclick = () => deleteProperty(p.id);
 
     card.append(edit, remove);
     $("propertyList").appendChild(card);
@@ -317,13 +332,16 @@ async function loadProperties() {
 
 function editProperty(p) {
   $("propertyId").value = p.id;
-  $("nome").value = p.nome || "";
+  $("titulo").value = p.titulo || "";
   $("tipo").value = p.tipo || "Casa";
-  $("localizacao").value = p.localizacao || "";
+  $("finalidade").value = p.finalidade || "Venda";
+  $("cidade").value = p.cidade || "";
+  $("bairro").value = p.bairro || "";
   $("preco").value = p.preco || "";
   $("descricao").value = p.descricao || "";
   $("quartos").value = p.quartos || 0;
   $("banheiros").value = p.banheiros || 0;
+  $("vagas").value = p.vagas || 0;
   $("area").value = p.area || "";
   $("foto_principal").value = p.foto_principal || "";
   $("status").value = p.status || "Disponível";
@@ -331,14 +349,15 @@ function editProperty(p) {
   $("formTitle").textContent = "Editar imóvel";
   $("saveBtn").textContent = "Salvar alterações";
   $("cancelBtn").classList.remove("hidden");
+  $("formMessage").classList.add("hidden");
 
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  window.scrollTo({top: 0, behavior: "smooth"});
 }
 
 async function deleteProperty(id) {
   if (!confirm("Tem certeza que deseja excluir este imóvel?")) return;
 
-  const { error } = await db.from("imoveis").delete().eq("id", id);
+  const {error} = await db.from("imoveis").delete().eq("id", id);
 
   if (error) {
     alert("Erro ao excluir: " + error.message);
@@ -359,12 +378,11 @@ function resetForm() {
 
 $("cancelBtn").addEventListener("click", resetForm);
 
-db.auth.onAuthStateChange((event, session) => {
+db.auth.onAuthStateChange(event => {
   if (event === "SIGNED_OUT") showLogin();
 });
 
 checkSession();
 </script>
-
 </body>
 </html>
