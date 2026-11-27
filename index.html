@@ -233,7 +233,6 @@
 
     const permitidos = [
       'disponivel',
-      'disponível',
       'ao vivo',
       'publicado',
       'publicada',
@@ -599,64 +598,103 @@
 
   /* =========================================
      PREPARAR VITRINE
+     CORRIGIDO: NÃO DUPLICA listingGrid
   ========================================= */
 
-  function prepararVitrine() {
-    let area = document.querySelector('.listing-placeholder');
+  function conteudoCarregando() {
+    return `
+      <div class="listing-message">
+        <strong>Carregando imóveis...</strong>
+        Aguarde enquanto buscamos os anúncios disponíveis.
+      </div>
+    `;
+  }
 
-    if (!area) {
-      const elementos = document.querySelectorAll('p, div');
-
-      for (const elemento of elementos) {
-        const texto = (elemento.textContent || '').toLowerCase();
-
-        if (
-          texto.includes('os filtros da página estão preparados') &&
-          !Array.from(elemento.children).some(function (filho) {
-            return (filho.textContent || '').toLowerCase()
-              .includes('os filtros da página estão preparados');
-          })
-        ) {
-          area = elemento;
-          break;
-        }
-      }
-    }
-
-    if (!area) {
-      area = document.getElementById('listingGrid');
-
-      if (area) {
-        area.innerHTML = '';
-      }
-    }
-
-    if (!area) {
-      const secao = document.getElementById('imoveis');
-
-      if (secao) {
-        area = document.createElement('div');
-        secao.appendChild(area);
-      }
-    }
-
-    if (!area) {
-      console.error('Área da vitrine não encontrada.');
-      return;
-    }
-
-    area.className = 'listing-area reveal in';
+  function criarEstruturaVitrine(area) {
+    area.classList.add('listing-area', 'reveal', 'in');
 
     area.innerHTML = `
       <div id="listingCount" class="listing-count"></div>
 
       <div id="listingGrid" class="listing-grid">
-        <div class="listing-message">
-          <strong>Carregando imóveis...</strong>
-          Aguarde enquanto buscamos os anúncios disponíveis.
-        </div>
+        ${conteudoCarregando()}
       </div>
     `;
+  }
+
+  function prepararVitrine() {
+    /* 1. Procura o espaço reservado para a vitrine */
+    let area = document.querySelector('.listing-placeholder');
+
+    if (area && area.id === 'listingGrid') {
+      area = null;
+    }
+
+    if (area) {
+      criarEstruturaVitrine(area);
+      return;
+    }
+
+    /* 2. Procura o texto antigo de aviso dos filtros */
+    const candidatos = document.querySelectorAll('p, div');
+
+    for (const elemento of candidatos) {
+      const texto = normalizar(elemento.textContent);
+
+      const temAviso =
+        texto.includes('os filtros da pagina estao preparados');
+
+      const contemAvisoEmFilho =
+        Array.from(elemento.children).some(function (filho) {
+          return normalizar(filho.textContent)
+            .includes('os filtros da pagina estao preparados');
+        });
+
+      if (temAviso && !contemAvisoEmFilho) {
+        const novaArea = document.createElement('div');
+
+        criarEstruturaVitrine(novaArea);
+
+        elemento.replaceWith(novaArea);
+        return;
+      }
+    }
+
+    /* 3. Se já existe listingGrid, reutiliza o elemento */
+    const gridExistente = document.getElementById('listingGrid');
+
+    if (gridExistente) {
+      gridExistente.classList.add('listing-grid');
+      gridExistente.innerHTML = conteudoCarregando();
+
+      let contador = document.getElementById('listingCount');
+
+      if (!contador) {
+        contador = document.createElement('div');
+        contador.id = 'listingCount';
+        contador.className = 'listing-count';
+
+        gridExistente.parentNode.insertBefore(
+          contador,
+          gridExistente
+        );
+      }
+
+      return;
+    }
+
+    /* 4. Última alternativa: adiciona a vitrine à seção de imóveis */
+    const secao = document.getElementById('imoveis');
+
+    if (secao) {
+      const novaArea = document.createElement('div');
+
+      criarEstruturaVitrine(novaArea);
+      secao.appendChild(novaArea);
+      return;
+    }
+
+    console.error('Área da vitrine não encontrada no HTML.');
   }
 
   /* =========================================
@@ -667,7 +705,10 @@
     const grid = document.getElementById('listingGrid');
     const contador = document.getElementById('listingCount');
 
-    if (!grid) return;
+    if (!grid) {
+      console.error('Elemento listingGrid não encontrado.');
+      return;
+    }
 
     if (contador) {
       contador.textContent =
