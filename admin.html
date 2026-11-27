@@ -1,0 +1,229 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Administração | Andrew Corretor</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f2f2f2;
+      color: #222;
+    }
+    header {
+      background: #111;
+      color: white;
+      padding: 24px;
+      text-align: center;
+    }
+    header h1 { margin: 0; }
+    header p { color: #d5b45b; margin-bottom: 0; }
+    main {
+      max-width: 900px;
+      margin: 30px auto;
+      padding: 20px;
+    }
+    .card {
+      background: white;
+      padding: 24px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 10px #0001;
+    }
+    h2 { margin-top: 0; }
+    label {
+      display: block;
+      margin: 14px 0 6px;
+      font-weight: bold;
+    }
+    input, textarea, select {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 15px;
+    }
+    textarea { min-height: 100px; }
+    button {
+      padding: 12px 18px;
+      border: 0;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+      margin-top: 15px;
+    }
+    .primary { background: #111; color: white; }
+    .delete { background: #b3261e; color: white; }
+    .property {
+      border: 1px solid #ddd;
+      padding: 16px;
+      margin-top: 12px;
+      border-radius: 8px;
+    }
+    .property img {
+      width: 100%;
+      max-height: 220px;
+      object-fit: cover;
+      border-radius: 6px;
+    }
+    .muted { color: #777; font-size: 13px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Andrew Corretor</h1>
+  <p>Painel Administrativo</p>
+</header>
+
+<main>
+  <section class="card">
+    <h2>Cadastrar imóvel</h2>
+
+    <form id="propertyForm">
+      <label>Nome do imóvel</label>
+      <input id="name" required placeholder="Ex.: Casa no bairro Santa Edwiges">
+
+      <label>Tipo de imóvel</label>
+      <select id="type">
+        <option>Casa</option>
+        <option>Apartamento</option>
+        <option>Sítio</option>
+        <option>Fazenda</option>
+        <option>Chácara</option>
+        <option>Lote</option>
+        <option>Terreno</option>
+      </select>
+
+      <label>Localização</label>
+      <input id="location" required placeholder="Cidade e bairro">
+
+      <label>Preço (R$)</label>
+      <input id="price" required placeholder="Ex.: 250000">
+
+      <label>Descrição</label>
+      <textarea id="description" required placeholder="Descreva o imóvel..."></textarea>
+
+      <label>Quantidade de quartos</label>
+      <input id="bedrooms" type="number" min="0" value="0">
+
+      <label>Quantidade de banheiros</label>
+      <input id="bathrooms" type="number" min="0" value="0">
+
+      <label>Área (m²)</label>
+      <input id="area" type="number" min="0">
+
+      <label>Foto principal (URL)</label>
+      <input id="photo" type="url" placeholder="https://...">
+
+      <label>Status</label>
+      <select id="status">
+        <option>Disponível</option>
+        <option>Reservado</option>
+        <option>Vendido</option>
+      </select>
+
+      <button class="primary" type="submit">Cadastrar imóvel</button>
+    </form>
+  </section>
+
+  <section class="card">
+    <h2>Imóveis cadastrados</h2>
+    <p class="muted">Lista de imóveis registrados neste navegador.</p>
+    <div id="propertyList"></div>
+  </section>
+</main>
+
+<script>
+  const form = document.getElementById("propertyForm");
+  const list = document.getElementById("propertyList");
+
+  let properties = JSON.parse(
+    localStorage.getItem("andrew_properties") || "[]"
+  );
+
+  function save() {
+    localStorage.setItem(
+      "andrew_properties",
+      JSON.stringify(properties)
+    );
+    render();
+  }
+
+  function render() {
+    list.innerHTML = "";
+
+    if (properties.length === 0) {
+      list.innerHTML = "<p>Nenhum imóvel cadastrado.</p>";
+      return;
+    }
+
+    properties.forEach((property, index) => {
+      const item = document.createElement("div");
+      item.className = "property";
+
+      const title = document.createElement("h3");
+      title.textContent = property.name;
+
+      const details = document.createElement("p");
+      details.textContent =
+        property.location + " | R$ " +
+        Number(property.price).toLocaleString("pt-BR") +
+        " | " + property.status;
+
+      const description = document.createElement("p");
+      description.textContent = property.description;
+
+      item.append(title, details, description);
+
+      if (property.photo) {
+        const img = document.createElement("img");
+        img.src = property.photo;
+        img.alt = property.name;
+        item.appendChild(img);
+      }
+
+      const remove = document.createElement("button");
+      remove.className = "delete";
+      remove.textContent = "Excluir";
+      remove.onclick = () => {
+        if (confirm("Deseja excluir este imóvel?")) {
+          properties.splice(index, 1);
+          save();
+        }
+      };
+
+      item.appendChild(remove);
+      list.appendChild(item);
+    });
+  }
+
+  form.addEventListener("submit", function(event) {
+    event.preventDefault();
+
+    properties.push({
+      name: document.getElementById("name").value,
+      type: document.getElementById("type").value,
+      location: document.getElementById("location").value,
+      price: document.getElementById("price").value,
+      description: document.getElementById("description").value,
+      bedrooms: document.getElementById("bedrooms").value,
+      bathrooms: document.getElementById("bathrooms").value,
+      area: document.getElementById("area").value,
+      photo: document.getElementById("photo").value,
+      status: document.getElementById("status").value
+    });
+
+    save();
+    form.reset();
+    alert("Imóvel cadastrado neste navegador!");
+  });
+
+  render();
+</script>
+
+</body>
+</html>
