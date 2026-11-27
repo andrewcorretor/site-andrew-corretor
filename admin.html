@@ -2,227 +2,368 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Administração | Andrew Corretor</title>
-  <style>
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #f2f2f2;
-      color: #222;
-    }
-    header {
-      background: #111;
-      color: white;
-      padding: 24px;
-      text-align: center;
-    }
-    header h1 { margin: 0; }
-    header p { color: #d5b45b; margin-bottom: 0; }
-    main {
-      max-width: 900px;
-      margin: 30px auto;
-      padding: 20px;
-    }
-    .card {
-      background: white;
-      padding: 24px;
-      border-radius: 10px;
-      margin-bottom: 20px;
-      box-shadow: 0 2px 10px #0001;
-    }
-    h2 { margin-top: 0; }
-    label {
-      display: block;
-      margin: 14px 0 6px;
-      font-weight: bold;
-    }
-    input, textarea, select {
-      width: 100%;
-      padding: 12px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      font-size: 15px;
-    }
-    textarea { min-height: 100px; }
-    button {
-      padding: 12px 18px;
-      border: 0;
-      border-radius: 6px;
-      cursor: pointer;
-      font-weight: bold;
-      margin-top: 15px;
-    }
-    .primary { background: #111; color: white; }
-    .delete { background: #b3261e; color: white; }
-    .property {
-      border: 1px solid #ddd;
-      padding: 16px;
-      margin-top: 12px;
-      border-radius: 8px;
-    }
-    .property img {
-      width: 100%;
-      max-height: 220px;
-      object-fit: cover;
-      border-radius: 6px;
-    }
-    .muted { color: #777; font-size: 13px; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin | Andrew Corretor</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#f2f2f2;color:#222;font-family:Arial,sans-serif}
+header{background:#111;color:white;padding:25px;text-align:center}
+header h1{margin:0}
+header p{color:#d5b45b}
+main{max-width:950px;margin:30px auto;padding:15px}
+.card{background:white;padding:24px;border-radius:10px;margin-bottom:20px;box-shadow:0 2px 10px #0001}
+h2{margin-top:0}
+label{display:block;margin:13px 0 6px;font-weight:bold}
+input,textarea,select{width:100%;padding:12px;border:1px solid #ccc;border-radius:6px;font-size:15px}
+textarea{min-height:100px}
+button{padding:12px 18px;border:0;border-radius:6px;cursor:pointer;font-weight:bold;margin:8px 5px 0 0}
+.primary{background:#111;color:white}
+.gold{background:#c4a04b;color:#111}
+.danger{background:#b3261e;color:white}
+.property{border:1px solid #ddd;padding:16px;margin-top:15px;border-radius:8px}
+.property img{width:100%;max-height:220px;object-fit:cover;border-radius:6px}
+.hidden{display:none}
+.message{padding:12px;margin:10px 0;border-radius:6px;background:#eee}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:600px){.grid{grid-template-columns:1fr}}
+</style>
 </head>
+
 <body>
 
 <header>
-  <h1>Andrew Corretor</h1>
-  <p>Painel Administrativo</p>
+<h1>Andrew Corretor</h1>
+<p>Painel Administrativo</p>
 </header>
 
 <main>
-  <section class="card">
-    <h2>Cadastrar imóvel</h2>
 
-    <form id="propertyForm">
-      <label>Nome do imóvel</label>
-      <input id="name" required placeholder="Ex.: Casa no bairro Santa Edwiges">
+<section class="card" id="loginBox">
+<h2>Acesso administrativo</h2>
 
-      <label>Tipo de imóvel</label>
-      <select id="type">
-        <option>Casa</option>
-        <option>Apartamento</option>
-        <option>Sítio</option>
-        <option>Fazenda</option>
-        <option>Chácara</option>
-        <option>Lote</option>
-        <option>Terreno</option>
-      </select>
+<label>E-mail</label>
+<input type="email" id="email" placeholder="Seu e-mail" required>
 
-      <label>Localização</label>
-      <input id="location" required placeholder="Cidade e bairro">
+<label>Senha</label>
+<input type="password" id="password" placeholder="Sua senha" required>
 
-      <label>Preço (R$)</label>
-      <input id="price" required placeholder="Ex.: 250000">
+<button class="primary" id="loginBtn">Entrar</button>
+<div id="loginMessage" class="message hidden"></div>
+</section>
 
-      <label>Descrição</label>
-      <textarea id="description" required placeholder="Descreva o imóvel..."></textarea>
+<section id="dashboard" class="hidden">
 
-      <label>Quantidade de quartos</label>
-      <input id="bedrooms" type="number" min="0" value="0">
+<div class="card">
+<h2>Gerenciar imóveis</h2>
+<p id="userInfo"></p>
+<button class="danger" id="logoutBtn">Sair do painel</button>
+</div>
 
-      <label>Quantidade de banheiros</label>
-      <input id="bathrooms" type="number" min="0" value="0">
+<div class="card">
+<h2 id="formTitle">Cadastrar novo imóvel</h2>
 
-      <label>Área (m²)</label>
-      <input id="area" type="number" min="0">
+<form id="propertyForm">
 
-      <label>Foto principal (URL)</label>
-      <input id="photo" type="url" placeholder="https://...">
+<input type="hidden" id="propertyId">
 
-      <label>Status</label>
-      <select id="status">
-        <option>Disponível</option>
-        <option>Reservado</option>
-        <option>Vendido</option>
-      </select>
+<label>Nome do imóvel</label>
+<input id="nome" required placeholder="Ex.: Casa no bairro Santa Edwiges">
 
-      <button class="primary" type="submit">Cadastrar imóvel</button>
-    </form>
-  </section>
+<label>Tipo de imóvel</label>
+<select id="tipo">
+<option>Casa</option>
+<option>Apartamento</option>
+<option>Sítio</option>
+<option>Fazenda</option>
+<option>Chácara</option>
+<option>Lote</option>
+<option>Terreno</option>
+</select>
 
-  <section class="card">
-    <h2>Imóveis cadastrados</h2>
-    <p class="muted">Lista de imóveis registrados neste navegador.</p>
-    <div id="propertyList"></div>
-  </section>
+<label>Localização</label>
+<input id="localizacao" required placeholder="Cidade e bairro">
+
+<label>Preço (R$)</label>
+<input id="preco" type="number" min="0" step="0.01" required>
+
+<label>Descrição</label>
+<textarea id="descricao" placeholder="Descreva o imóvel"></textarea>
+
+<div class="grid">
+<div>
+<label>Quartos</label>
+<input id="quartos" type="number" min="0" value="0">
+</div>
+<div>
+<label>Banheiros</label>
+<input id="banheiros" type="number" min="0" value="0">
+</div>
+</div>
+
+<label>Área (m²)</label>
+<input id="area" type="number" min="0" step="0.01">
+
+<label>Foto principal (URL)</label>
+<input id="foto_principal" type="url" placeholder="https://...">
+
+<label>Status do imóvel</label>
+<select id="status">
+<option>Disponível</option>
+<option>Reservado</option>
+<option>Vendido</option>
+</select>
+
+<button type="submit" class="primary" id="saveBtn">Cadastrar imóvel</button>
+<button type="button" class="gold hidden" id="cancelBtn">Cancelar edição</button>
+
+</form>
+<div id="formMessage" class="message hidden"></div>
+</div>
+
+<div class="card">
+<h2>Imóveis cadastrados</h2>
+<div id="propertyList">Carregando imóveis...</div>
+</div>
+
+</section>
 </main>
 
 <script>
-  const form = document.getElementById("propertyForm");
-  const list = document.getElementById("propertyList");
+const SUPABASE_URL = "https://gvcqmrkievpxqshfmfaj.supabase.co";
+const SUPABASE_KEY = "sb_publishable_E-rC-JV_EJRjHH1V_guhAA_kZ7dxfMo";
 
-  let properties = JSON.parse(
-    localStorage.getItem("andrew_properties") || "[]"
-  );
+const db = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY
+);
 
-  function save() {
-    localStorage.setItem(
-      "andrew_properties",
-      JSON.stringify(properties)
-    );
-    render();
+const $ = id => document.getElementById(id);
+
+function message(id, text) {
+  $(id).textContent = text;
+  $(id).classList.remove("hidden");
+}
+
+function money(value) {
+  return Number(value || 0).toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL"
+  });
+}
+
+async function checkSession() {
+  const { data, error } = await db.auth.getSession();
+
+  if (error) {
+    message("loginMessage", error.message);
+    return;
   }
 
-  function render() {
-    list.innerHTML = "";
+  if (data.session) {
+    showDashboard(data.session.user);
+  } else {
+    showLogin();
+  }
+}
 
-    if (properties.length === 0) {
-      list.innerHTML = "<p>Nenhum imóvel cadastrado.</p>";
-      return;
-    }
+function showLogin() {
+  $("loginBox").classList.remove("hidden");
+  $("dashboard").classList.add("hidden");
+}
 
-    properties.forEach((property, index) => {
-      const item = document.createElement("div");
-      item.className = "property";
+async function showDashboard(user) {
+  $("loginBox").classList.add("hidden");
+  $("dashboard").classList.remove("hidden");
+  $("userInfo").textContent = "Conectado: " + user.email;
+  await loadProperties();
+}
 
-      const title = document.createElement("h3");
-      title.textContent = property.name;
+$("loginBtn").addEventListener("click", async () => {
+  const email = $("email").value.trim();
+  const password = $("password").value;
 
-      const details = document.createElement("p");
-      details.textContent =
-        property.location + " | R$ " +
-        Number(property.price).toLocaleString("pt-BR") +
-        " | " + property.status;
-
-      const description = document.createElement("p");
-      description.textContent = property.description;
-
-      item.append(title, details, description);
-
-      if (property.photo) {
-        const img = document.createElement("img");
-        img.src = property.photo;
-        img.alt = property.name;
-        item.appendChild(img);
-      }
-
-      const remove = document.createElement("button");
-      remove.className = "delete";
-      remove.textContent = "Excluir";
-      remove.onclick = () => {
-        if (confirm("Deseja excluir este imóvel?")) {
-          properties.splice(index, 1);
-          save();
-        }
-      };
-
-      item.appendChild(remove);
-      list.appendChild(item);
-    });
+  if (!email || !password) {
+    message("loginMessage", "Preencha e-mail e senha.");
+    return;
   }
 
-  form.addEventListener("submit", function(event) {
-    event.preventDefault();
+  $("loginBtn").disabled = true;
 
-    properties.push({
-      name: document.getElementById("name").value,
-      type: document.getElementById("type").value,
-      location: document.getElementById("location").value,
-      price: document.getElementById("price").value,
-      description: document.getElementById("description").value,
-      bedrooms: document.getElementById("bedrooms").value,
-      bathrooms: document.getElementById("bathrooms").value,
-      area: document.getElementById("area").value,
-      photo: document.getElementById("photo").value,
-      status: document.getElementById("status").value
-    });
-
-    save();
-    form.reset();
-    alert("Imóvel cadastrado neste navegador!");
+  const { data, error } = await db.auth.signInWithPassword({
+    email,
+    password
   });
 
-  render();
+  $("loginBtn").disabled = false;
+
+  if (error) {
+    message("loginMessage", "Erro no acesso: " + error.message);
+    return;
+  }
+
+  showDashboard(data.user);
+});
+
+$("logoutBtn").addEventListener("click", async () => {
+  await db.auth.signOut();
+  showLogin();
+});
+
+$("propertyForm").addEventListener("submit", async event => {
+  event.preventDefault();
+
+  const id = $("propertyId").value;
+
+  const property = {
+    nome: $("nome").value.trim(),
+    tipo: $("tipo").value,
+    localizacao: $("localizacao").value.trim(),
+    preco: Number($("preco").value),
+    descricao: $("descricao").value.trim(),
+    quartos: Number($("quartos").value || 0),
+    banheiros: Number($("banheiros").value || 0),
+    area: $("area").value ? Number($("area").value) : null,
+    foto_principal: $("foto_principal").value.trim() || null,
+    status: $("status").value
+  };
+
+  $("saveBtn").disabled = true;
+
+  let result;
+
+  if (id) {
+    result = await db.from("imoveis").update(property).eq("id", id);
+  } else {
+    result = await db.from("imoveis").insert([property]);
+  }
+
+  $("saveBtn").disabled = false;
+
+  if (result.error) {
+    message("formMessage", "Erro ao salvar: " + result.error.message);
+    return;
+  }
+
+  message("formMessage", id ? "Imóvel atualizado!" : "Imóvel cadastrado!");
+  resetForm();
+  await loadProperties();
+});
+
+async function loadProperties() {
+  $("propertyList").textContent = "Carregando...";
+
+  const { data, error } = await db
+    .from("imoveis")
+    .select("*")
+    .order("id", { ascending: false });
+
+  if (error) {
+    $("propertyList").textContent = "Erro ao carregar: " + error.message;
+    return;
+  }
+
+  $("propertyList").replaceChildren();
+
+  if (!data.length) {
+    $("propertyList").textContent = "Nenhum imóvel cadastrado.";
+    return;
+  }
+
+  data.forEach(property => {
+    const card = document.createElement("div");
+    card.className = "property";
+
+    const title = document.createElement("h3");
+    title.textContent = property.nome;
+
+    const details = document.createElement("p");
+    details.textContent =
+      property.localizacao + " | " + money(property.preco);
+
+    const status = document.createElement("p");
+    status.textContent = "Status: " + property.status;
+
+    const description = document.createElement("p");
+    description.textContent = property.descricao || "";
+
+    card.append(title, details, status, description);
+
+    if (property.foto_principal) {
+      const img = document.createElement("img");
+      img.src = property.foto_principal;
+      img.alt = property.nome;
+      img.onerror = () => img.remove();
+      card.appendChild(img);
+    }
+
+    const edit = document.createElement("button");
+    edit.className = "gold";
+    edit.textContent = "Editar";
+    edit.addEventListener("click", () => editProperty(property));
+
+    const remove = document.createElement("button");
+    remove.className = "danger";
+    remove.textContent = "Excluir";
+    remove.addEventListener("click", () => deleteProperty(property.id));
+
+    card.append(edit, remove);
+    $("propertyList").appendChild(card);
+  });
+}
+
+function editProperty(p) {
+  $("propertyId").value = p.id;
+  $("nome").value = p.nome || "";
+  $("tipo").value = p.tipo || "Casa";
+  $("localizacao").value = p.localizacao || "";
+  $("preco").value = p.preco || "";
+  $("descricao").value = p.descricao || "";
+  $("quartos").value = p.quartos || 0;
+  $("banheiros").value = p.banheiros || 0;
+  $("area").value = p.area || "";
+  $("foto_principal").value = p.foto_principal || "";
+  $("status").value = p.status || "Disponível";
+
+  $("formTitle").textContent = "Editar imóvel";
+  $("saveBtn").textContent = "Salvar alterações";
+  $("cancelBtn").classList.remove("hidden");
+
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+async function deleteProperty(id) {
+  if (!confirm("Tem certeza que deseja excluir este imóvel?")) return;
+
+  const { error } = await db.from("imoveis").delete().eq("id", id);
+
+  if (error) {
+    alert("Erro ao excluir: " + error.message);
+    return;
+  }
+
+  alert("Imóvel excluído com sucesso!");
+  await loadProperties();
+}
+
+function resetForm() {
+  $("propertyForm").reset();
+  $("propertyId").value = "";
+  $("formTitle").textContent = "Cadastrar novo imóvel";
+  $("saveBtn").textContent = "Cadastrar imóvel";
+  $("cancelBtn").classList.add("hidden");
+}
+
+$("cancelBtn").addEventListener("click", resetForm);
+
+db.auth.onAuthStateChange((event, session) => {
+  if (event === "SIGNED_OUT") showLogin();
+});
+
+checkSession();
 </script>
 
 </body>
