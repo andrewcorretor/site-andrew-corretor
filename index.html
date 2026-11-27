@@ -1,490 +1,810 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <script>
-document.documentElement.classList.add('js');
+(function () {
+  'use strict';
 
-document.getElementById('year').textContent = new Date().getFullYear();
+  document.documentElement.classList.add('js');
 
-/* =========================================
-   SUPABASE
-========================================= */
+  /* =========================================
+     CONFIGURAÇÃO SUPABASE
+  ========================================= */
 
-const SUPABASE_URL = 'https://gvcqmrkievpxqshfmfaj.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_E-rC-JV_EJRjHH1V_guhAA_kZ7dxfMo';
+  const SUPABASE_URL = 'https://gvcqmrkievpxqshfmfaj.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_E-rC-JV_EJRjHH1V_guhAA_kZ7dxfMo';
 
-const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  let db = null;
+  let todosImoveis = [];
 
-let todosImoveis = [];
-
-/* =========================================
-   ESTILOS DA VITRINE
-========================================= */
-
-const estiloVitrine = document.createElement('style');
-
-estiloVitrine.textContent = `
-.listing-area{min-height:180px}
-.listing-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}
-.listing-card{background:var(--ink-2);border:1px solid var(--line);border-radius:14px;overflow:hidden;transition:transform .25s,border-color .25s}
-.listing-card:hover{transform:translateY(-5px);border-color:var(--gold)}
-.listing-photo{width:100%;aspect-ratio:4/3;object-fit:cover;background:var(--ink-3)}
-.listing-photo-empty{aspect-ratio:4/3;display:grid;place-items:center;background:var(--ink-3);color:var(--gold);font-size:2.5rem}
-.listing-info{padding:22px}
-.listing-tag{display:inline-block;color:var(--gold-light);font-size:.7rem;font-weight:800;letter-spacing:.13em;text-transform:uppercase;margin-bottom:9px}
-.listing-title{font-family:var(--serif);font-size:1.65rem;color:var(--white);margin:0 0 9px}
-.listing-location{font-size:.84rem;color:var(--muted);margin-bottom:14px}
-.listing-price{font-size:1.35rem;font-weight:800;color:var(--gold-light);margin-bottom:16px}
-.listing-details{display:flex;flex-wrap:wrap;gap:12px;color:#d0c9bc;font-size:.8rem;padding:13px 0;border-top:1px solid var(--line-soft);border-bottom:1px solid var(--line-soft)}
-.listing-description{font-size:.86rem;color:var(--muted);margin:14px 0;line-height:1.6}
-.listing-card .btn{width:100%;margin-top:5px}
-.listing-message{padding:35px 20px;text-align:center;border:1px solid var(--line);border-radius:14px;background:var(--ink-2);color:var(--muted);grid-column:1/-1}
-.listing-message strong{display:block;font-family:var(--serif);font-size:1.6rem;color:var(--white);margin-bottom:8px}
-.listing-count{color:var(--muted);font-size:.85rem;margin-bottom:20px}
-@media(max-width:900px){.listing-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:560px){.listing-grid{grid-template-columns:1fr}}
-`;
-
-document.head.appendChild(estiloVitrine);
-
-/* =========================================
-   PREPARAR A VITRINE
-========================================= */
-
-const vitrineAntiga = document.querySelector('.listing-placeholder');
-
-if (vitrineAntiga) {
-  vitrineAntiga.className = 'listing-area reveal';
-  vitrineAntiga.innerHTML = `
-    <div id="listingCount" class="listing-count"></div>
-    <div id="listingGrid" class="listing-grid">
-      <div class="listing-message">
-        <strong>Carregando imóveis...</strong>
-        Aguarde enquanto buscamos os anúncios.
-      </div>
-    </div>
-  `;
-}
-
-/* =========================================
-   FUNÇÕES AUXILIARES
-========================================= */
-
-function normalizar(valor) {
-  return String(valor ?? '')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .trim()
-    .toLowerCase();
-}
-
-function escapar(valor) {
-  return String(valor ?? '').replace(/[&<>"']/g, function(c) {
-    return {
-      '&': '&amp;',
-      '<': '&lt;',
-      '>': '&gt;',
-      '"': '&quot;',
-      "'": '&#39;'
-    }[c];
-  });
-}
-
-function formatarPreco(valor) {
-  const numero = Number(valor);
-
-  if (!Number.isFinite(numero)) {
-    return 'Consulte o preço';
+  if (window.supabase && window.supabase.createClient) {
+    db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
   }
 
-  return numero.toLocaleString('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-    maximumFractionDigits: 0
-  });
-}
+  /* =========================================
+     INICIALIZAÇÃO
+  ========================================= */
 
-function obterFoto(imovel) {
-  let foto = imovel.foto_principal || '';
+  function iniciar() {
+    const ano = document.getElementById('year');
 
-  if (typeof foto === 'string' && foto.trim()) {
-    try {
-      const url = new URL(foto);
-      if (url.protocol === 'https:' || url.protocol === 'http:') {
-        return url.href;
+    if (ano) {
+      ano.textContent = new Date().getFullYear();
+    }
+
+    prepararEstilos();
+    prepararVitrine();
+    prepararFiltros();
+    prepararCategorias();
+    prepararMenu();
+    prepararCabecalho();
+    prepararAnimacoes();
+
+    carregarImoveis();
+  }
+
+  /* =========================================
+     ESTILOS DA VITRINE
+  ========================================= */
+
+  function prepararEstilos() {
+    if (document.getElementById('estilo-vitrine-supabase')) return;
+
+    const estilo = document.createElement('style');
+    estilo.id = 'estilo-vitrine-supabase';
+
+    estilo.textContent = `
+      .listing-area { min-height: 180px; }
+
+      .listing-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 24px;
       }
-    } catch (e) {}
+
+      .listing-card {
+        background: var(--ink-2, #191919);
+        border: 1px solid var(--line, #333);
+        border-radius: 14px;
+        overflow: hidden;
+        transition: transform .25s, border-color .25s;
+      }
+
+      .listing-card:hover {
+        transform: translateY(-5px);
+        border-color: var(--gold, #c6a15b);
+      }
+
+      .listing-photo {
+        width: 100%;
+        aspect-ratio: 4 / 3;
+        object-fit: cover;
+        display: block;
+        background: var(--ink-3, #252525);
+      }
+
+      .listing-photo-empty {
+        aspect-ratio: 4 / 3;
+        display: grid;
+        place-items: center;
+        background: var(--ink-3, #252525);
+        color: var(--gold, #c6a15b);
+        font-size: 2.5rem;
+      }
+
+      .listing-info { padding: 22px; }
+
+      .listing-tag {
+        display: inline-block;
+        color: var(--gold-light, #e2c27b);
+        font-size: .7rem;
+        font-weight: 800;
+        letter-spacing: .13em;
+        text-transform: uppercase;
+        margin-bottom: 9px;
+      }
+
+      .listing-title {
+        font-family: var(--serif, Georgia, serif);
+        font-size: 1.5rem;
+        color: var(--white, #fff);
+        margin: 0 0 9px;
+      }
+
+      .listing-location {
+        font-size: .84rem;
+        color: var(--muted, #aaa);
+        margin-bottom: 14px;
+      }
+
+      .listing-price {
+        font-size: 1.3rem;
+        font-weight: 800;
+        color: var(--gold-light, #e2c27b);
+        margin-bottom: 16px;
+      }
+
+      .listing-details {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        color: #d0c9bc;
+        font-size: .8rem;
+        padding: 13px 0;
+        border-top: 1px solid var(--line-soft, #333);
+        border-bottom: 1px solid var(--line-soft, #333);
+      }
+
+      .listing-description {
+        font-size: .86rem;
+        color: var(--muted, #aaa);
+        margin: 14px 0;
+        line-height: 1.6;
+      }
+
+      .listing-card .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        margin-top: 5px;
+      }
+
+      .listing-message {
+        padding: 35px 20px;
+        text-align: center;
+        border: 1px solid var(--line, #333);
+        border-radius: 14px;
+        background: var(--ink-2, #191919);
+        color: var(--muted, #aaa);
+        grid-column: 1 / -1;
+      }
+
+      .listing-message strong {
+        display: block;
+        font-family: var(--serif, Georgia, serif);
+        font-size: 1.5rem;
+        color: var(--white, #fff);
+        margin-bottom: 8px;
+      }
+
+      .listing-count {
+        color: var(--muted, #aaa);
+        font-size: .85rem;
+        margin-bottom: 20px;
+      }
+
+      @media (max-width: 900px) {
+        .listing-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 560px) {
+        .listing-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    `;
+
+    document.head.appendChild(estilo);
   }
 
-  if (imovel.fotos) {
-    let fotos = imovel.fotos;
+  /* =========================================
+     PREPARAR A VITRINE
+  ========================================= */
 
-    if (typeof fotos === 'string') {
-      try {
-        fotos = JSON.parse(fotos);
-      } catch (e) {
-        fotos = [fotos];
+  function prepararVitrine() {
+    let area = document.querySelector('.listing-placeholder');
+
+    if (!area) {
+      const elementos = document.querySelectorAll('p, div');
+
+      for (const elemento of elementos) {
+        const texto = (elemento.textContent || '').toLowerCase();
+
+        if (
+          texto.includes('os filtros da página estão preparados') &&
+          !Array.from(elemento.children).some(function (filho) {
+            return (filho.textContent || '').toLowerCase()
+              .includes('os filtros da página estão preparados');
+          })
+        ) {
+          area = elemento;
+          break;
+        }
       }
     }
 
-    if (Array.isArray(fotos) && fotos.length) {
-      const primeira = fotos[0];
-      foto = typeof primeira === 'string'
-        ? primeira
-        : primeira?.url || primeira?.src || primeira?.path || '';
+    if (!area) {
+      area = document.getElementById('listingGrid');
+
+      if (area) {
+        area.innerHTML = '';
+        area.id = 'listingGrid';
+        area.className = 'listing-grid';
+      }
+    }
+
+    if (!area) {
+      const secao = document.getElementById('imoveis');
+
+      if (secao) {
+        area = document.createElement('div');
+        area.className = 'listing-area reveal';
+        secao.appendChild(area);
+      }
+    }
+
+    if (!area) {
+      console.error('Não foi encontrado o espaço da vitrine no HTML.');
+      return;
+    }
+
+    area.className = 'listing-area reveal';
+
+    area.innerHTML = `
+      <div id="listingCount" class="listing-count"></div>
+
+      <div id="listingGrid" class="listing-grid">
+        <div class="listing-message">
+          <strong>Carregando imóveis...</strong>
+          Aguarde enquanto buscamos os anúncios.
+        </div>
+      </div>
+    `;
+  }
+
+  /* =========================================
+     FUNÇÕES AUXILIARES
+  ========================================= */
+
+  function normalizar(valor) {
+    return String(valor ?? '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim()
+      .toLowerCase();
+  }
+
+  function escapar(valor) {
+    return String(valor ?? '').replace(/[&<>"']/g, function (c) {
+      return {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+      }[c];
+    });
+  }
+
+  function formatarPreco(valor) {
+    if (valor === null || valor === undefined || valor === '') {
+      return 'Consulte o preço';
+    }
+
+    const numero = Number(valor);
+
+    if (!Number.isFinite(numero)) {
+      return 'Consulte o preço';
+    }
+
+    return numero.toLocaleString('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+      maximumFractionDigits: 0
+    });
+  }
+
+  function obterFoto(imovel) {
+    let foto = imovel.foto_principal || '';
+
+    function validarUrl(valor) {
+      if (typeof valor !== 'string' || !valor.trim()) return '';
 
       try {
-        const url = new URL(foto);
+        const url = new URL(valor.trim());
+
         if (url.protocol === 'https:' || url.protocol === 'http:') {
           return url.href;
         }
       } catch (e) {}
+
+      return '';
     }
-  }
 
-  return '';
-}
+    let url = validarUrl(foto);
 
-function finalidadeCompativel(valor, filtro) {
-  if (!filtro) return true;
+    if (url) return url;
 
-  const v = normalizar(valor);
-  const f = normalizar(filtro);
+    if (imovel.fotos) {
+      let fotos = imovel.fotos;
 
-  if (f === 'comprar') {
-    return ['comprar', 'venda', 'vender'].includes(v);
-  }
-
-  if (f === 'alugar') {
-    return ['alugar', 'aluguel', 'locacao'].includes(v);
-  }
-
-  return v === f;
-}
-
-/* =========================================
-   MOSTRAR IMÓVEIS
-========================================= */
-
-function mostrarImoveis(lista) {
-  const grid = document.getElementById('listingGrid');
-  const contador = document.getElementById('listingCount');
-
-  if (!grid || !contador) return;
-
-  contador.textContent = lista.length === 1
-    ? '1 imóvel encontrado'
-    : lista.length + ' imóveis encontrados';
-
-  if (!lista.length) {
-    grid.innerHTML = `
-      <div class="listing-message">
-        <strong>Nenhum imóvel encontrado.</strong>
-        Tente modificar os filtros ou entre em contato pelo WhatsApp.
-      </div>
-    `;
-    return;
-  }
-
-  grid.innerHTML = lista.map(function(imovel) {
-    const foto = obterFoto(imovel);
-    const titulo = escapar(imovel.titulo || 'Imóvel disponível');
-    const tipo = escapar(imovel.tipo || 'Imóvel');
-    const cidade = escapar(imovel.cidade || '');
-    const bairro = escapar(imovel.bairro || '');
-    const preco = formatarPreco(imovel.preco);
-    const quartos = Number(imovel.quartos) || 0;
-    const banhos = Number(imovel.banhos) || 0;
-    const vagas = Number(imovel.vagas) || 0;
-    const area = Number(imovel.area) || 0;
-    const finalidade = escapar(imovel.finalidade || '');
-    const descricao = escapar(imovel.descricao || imovel.especificacao || '');
-    const codigo = escapar(imovel.id);
-
-    const localizacao = [bairro, cidade].filter(Boolean).join(' • ');
-
-    const detalhes = [
-      quartos ? quartos + ' quarto(s)' : '',
-      banhos ? banhos + ' banheiro(s)' : '',
-      vagas ? vagas + ' vaga(s)' : '',
-      area ? area + ' m²' : ''
-    ].filter(Boolean);
-
-    const mensagem = encodeURIComponent(
-      'Olá, Andrew! Tenho interesse no imóvel "' +
-      (imovel.titulo || 'Imóvel disponível') +
-      '". Código: ' + imovel.id +
-      '. Poderia me passar mais informações?'
-    );
-
-    return `
-      <article class="listing-card">
-        ${
-          foto
-          ? `<img class="listing-photo"
-              src="${escapar(foto)}"
-              alt="${titulo}"
-              loading="lazy"
-              onerror="this.style.display='none';this.nextElementSibling.style.display='grid'">`
-          : ''
+      if (typeof fotos === 'string') {
+        try {
+          fotos = JSON.parse(fotos);
+        } catch (e) {
+          fotos = [fotos];
         }
+      }
 
-        <div class="listing-photo-empty" style="${foto ? 'display:none' : ''}">
-          <svg width="46" height="46" viewBox="0 0 24 24"
-            fill="none" stroke="currentColor" stroke-width="1.4">
-            <path d="M3 11.5 12 4l9 7.5M5.5 9.8V20h13V9.8M10 20v-5.5h4V20"/>
-          </svg>
-        </div>
+      if (Array.isArray(fotos) && fotos.length) {
+        const primeira = fotos[0];
 
-        <div class="listing-info">
-          <span class="listing-tag">${tipo}${finalidade ? ' • ' + finalidade : ''}</span>
+        foto = typeof primeira === 'string'
+          ? primeira
+          : primeira?.url || primeira?.src || primeira?.path || '';
 
-          <h3 class="listing-title">${titulo}</h3>
+        url = validarUrl(foto);
 
-          <p class="listing-location">
-            ${localizacao || 'Itaúna e região - MG'}
-          </p>
+        if (url) return url;
+      }
+    }
 
-          <div class="listing-price">${preco}</div>
+    return '';
+  }
 
-          ${
-            detalhes.length
-            ? `<div class="listing-details">${detalhes.map(escapar).join(' • ')}</div>`
-            : ''
-          }
+  function finalidadeCompativel(valor, filtro) {
+    if (!filtro) return true;
 
-          ${
-            descricao
-            ? `<p class="listing-description">${
-                descricao.length > 140
-                ? descricao.slice(0, 140) + '...'
-                : descricao
-              }</p>`
-            : ''
-          }
+    const v = normalizar(valor);
+    const f = normalizar(filtro);
 
-          <a class="btn btn-gold"
-             href="https://wa.me/5537991198709?text=${mensagem}"
-             target="_blank" rel="noopener">
-            Tenho interesse
-            <svg aria-hidden="true"><use href="#i-arrow"/></svg>
-          </a>
-        </div>
-      </article>
-    `;
-  }).join('');
-}
+    if (f === 'comprar') {
+      return ['comprar', 'venda', 'vender'].includes(v);
+    }
 
-/* =========================================
-   BUSCAR IMÓVEIS NO SUPABASE
-========================================= */
+    if (f === 'alugar') {
+      return ['alugar', 'aluguel', 'locacao', 'locação'].includes(v);
+    }
 
-async function carregarImoveis() {
-  const grid = document.getElementById('listingGrid');
+    return v === f;
+  }
 
-  try {
-    const { data, error } = await db
-      .from('imoveis')
-      .select('*')
-      .order('created_at', { ascending: false });
+  function filtroTodos(valor) {
+    const v = normalizar(valor);
 
-    if (error) throw error;
+    return !v ||
+      v === 'todos' ||
+      v === 'todas' ||
+      v === 'todos os tipos' ||
+      v === 'todas as cidades' ||
+      v === 'todas as finalidades';
+  }
 
-    todosImoveis = data || [];
-    mostrarImoveis(todosImoveis);
+  /* =========================================
+     MOSTRAR IMÓVEIS
+  ========================================= */
 
-  } catch (erro) {
-    console.error('Erro ao carregar imóveis:', erro);
+  function mostrarImoveis(lista) {
+    const grid = document.getElementById('listingGrid');
+    const contador = document.getElementById('listingCount');
 
-    if (grid) {
+    if (!grid) return;
+
+    if (contador) {
+      contador.textContent = lista.length === 1
+        ? '1 imóvel encontrado'
+        : lista.length + ' imóveis encontrados';
+    }
+
+    if (!lista.length) {
       grid.innerHTML = `
         <div class="listing-message">
-          <strong>Não foi possível carregar os imóveis.</strong>
-          Verifique a conexão e as permissões de leitura da tabela no Supabase.
+          <strong>Nenhum imóvel encontrado.</strong>
+          Tente modificar os filtros ou entre em contato pelo WhatsApp.
         </div>
       `;
-    }
-
-    const contador = document.getElementById('listingCount');
-    if (contador) contador.textContent = '';
-  }
-}
-
-carregarImoveis();
-
-/* =========================================
-   FILTROS DE PESQUISA
-========================================= */
-
-(function() {
-  const form = document.getElementById('searchForm');
-  const status = document.getElementById('formStatus');
-
-  function mostrarAviso(mensagem, tipo) {
-    status.textContent = mensagem;
-    status.className = 'form-status show ' + tipo;
-  }
-
-  form.addEventListener('submit', function(e) {
-    e.preventDefault();
-
-    const cidade = document.getElementById('cidade').value;
-    const finalidade = document.getElementById('finalidade').value;
-    const tipo = document.getElementById('tipo').value;
-    const minimo = document.getElementById('minimo').value;
-    const maximo = document.getElementById('maximo').value;
-
-    if (minimo && maximo && Number(minimo) > Number(maximo)) {
-      mostrarAviso(
-        'O valor mínimo não pode ser maior que o valor máximo.',
-        'error'
-      );
-      document.getElementById('minimo').focus();
       return;
     }
 
-    const filtrados = todosImoveis.filter(function(imovel) {
-      const preco = Number(imovel.preco) || 0;
+    grid.innerHTML = lista.map(function (imovel) {
+      const foto = obterFoto(imovel);
+      const titulo = escapar(imovel.titulo || 'Imóvel disponível');
+      const tipo = escapar(imovel.tipo || 'Imóvel');
+      const cidade = escapar(imovel.cidade || '');
+      const bairro = escapar(imovel.bairro || '');
+      const preco = formatarPreco(imovel.preco);
+      const quartos = Number(imovel.quartos) || 0;
+      const banhos = Number(imovel.banhos) || 0;
+      const vagas = Number(imovel.vagas) || 0;
+      const area = Number(imovel.area) || 0;
+      const finalidade = escapar(imovel.finalidade || '');
+      const descricao = escapar(
+        imovel.descricao || imovel.especificacao || ''
+      );
+      const codigo = escapar(imovel.id);
 
-      if (
-        cidade &&
-        normalizar(imovel.cidade) !== normalizar(cidade)
-      ) return false;
+      const localizacao = [bairro, cidade]
+        .filter(Boolean)
+        .join(' • ');
 
-      if (
-        finalidade &&
-        !finalidadeCompativel(imovel.finalidade, finalidade)
-      ) return false;
+      const detalhes = [
+        quartos ? quartos + ' quarto(s)' : '',
+        banhos ? banhos + ' banheiro(s)' : '',
+        vagas ? vagas + ' vaga(s)' : '',
+        area ? area + ' m²' : ''
+      ].filter(Boolean);
 
-      if (
-        tipo &&
-        normalizar(imovel.tipo) !== normalizar(tipo)
-      ) return false;
+      const mensagem = encodeURIComponent(
+        'Olá, Andrew! Tenho interesse no imóvel "' +
+        (imovel.titulo || 'Imóvel disponível') +
+        '". Código: ' + imovel.id +
+        '. Poderia me passar mais informações?'
+      );
 
-      if (minimo && preco < Number(minimo)) return false;
-      if (maximo && preco > Number(maximo)) return false;
+      const imagem = foto
+        ? `
+          <img
+            class="listing-photo"
+            src="${escapar(foto)}"
+            alt="${titulo}"
+            loading="lazy"
+            onerror="
+              this.style.display='none';
+              this.nextElementSibling.style.display='grid';
+            "
+          >
+        `
+        : '';
 
-      return true;
-    });
+      return `
+        <article class="listing-card">
 
-    mostrarImoveis(filtrados);
+          ${imagem}
 
-    mostrarAviso(
-      filtrados.length
-        ? filtrados.length + ' imóvel(is) encontrado(s). Confira os resultados abaixo.'
-        : 'Nenhum imóvel corresponde aos filtros selecionados.',
-      'info'
-    );
+          <div
+            class="listing-photo-empty"
+            style="${foto ? 'display:none' : ''}"
+          >
+            <svg
+              width="46"
+              height="46"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.4"
+            >
+              <path d="M3 11.5 12 4l9 7.5M5.5 9.8V20h13V9.8M10 20v-5.5h4V20"/>
+            </svg>
+          </div>
 
-    document.getElementById('imoveis').scrollIntoView({
-      behavior: 'smooth'
-    });
-  });
+          <div class="listing-info">
 
-  form.addEventListener('input', function() {
-    if (status.classList.contains('error')) {
-      status.className = 'form-status';
+            <span class="listing-tag">
+              ${tipo}${finalidade ? ' • ' + finalidade : ''}
+            </span>
+
+            <h3 class="listing-title">${titulo}</h3>
+
+            <p class="listing-location">
+              ${localizacao || 'Itaúna e região - MG'}
+            </p>
+
+            <div class="listing-price">${preco}</div>
+
+            ${
+              detalhes.length
+                ? `<div class="listing-details">${detalhes.map(escapar).join(' • ')}</div>`
+                : ''
+            }
+
+            ${
+              descricao
+                ? `<p class="listing-description">${
+                    descricao.length > 140
+                      ? descricao.slice(0, 140) + '...'
+                      : descricao
+                  }</p>`
+                : ''
+            }
+
+            <a
+              class="btn btn-gold"
+              href="https://wa.me/5537991198709?text=${mensagem}"
+              target="_blank"
+              rel="noopener"
+            >
+              Tenho interesse
+              <svg aria-hidden="true">
+                <use href="#i-arrow"></use>
+              </svg>
+            </a>
+
+          </div>
+        </article>
+      `;
+    }).join('');
+  }
+
+  /* =========================================
+     BUSCAR IMÓVEIS NO SUPABASE
+  ========================================= */
+
+  async function carregarImoveis() {
+    const grid = document.getElementById('listingGrid');
+
+    if (!db) {
+      if (grid) {
+        grid.innerHTML = `
+          <div class="listing-message">
+            <strong>Conexão indisponível.</strong>
+            Não foi possível iniciar a conexão com o banco de dados.
+          </div>
+        `;
+      }
+      return;
     }
-  });
-})();
 
-/* =========================================
-   CATEGORIAS
-========================================= */
+    try {
+      const resultado = await db
+        .from('imoveis')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-document.querySelectorAll('.category[data-tipo]').forEach(function(card) {
-  card.addEventListener('click', function() {
-    const select = document.getElementById('tipo');
-    select.value = card.getAttribute('data-tipo');
+      if (resultado.error) throw resultado.error;
 
-    const field = document.getElementById('tipoField');
-    field.classList.remove('flash');
-    void field.offsetWidth;
-    field.classList.add('flash');
-  });
-});
+      todosImoveis = resultado.data || [];
 
-/* =========================================
-   MENU MOBILE
-========================================= */
+      mostrarImoveis(todosImoveis);
 
-(function() {
-  const toggle = document.querySelector('.menu-toggle');
-  const menu = document.getElementById('menu');
+    } catch (erro) {
+      console.error('Erro ao carregar imóveis:', erro);
 
-  function close() {
-    menu.classList.remove('open');
-    document.getElementById('topo').classList.remove('menu-open');
-    toggle.setAttribute('aria-expanded', 'false');
-    toggle.setAttribute('aria-label', 'Abrir menu');
+      if (grid) {
+        grid.innerHTML = `
+          <div class="listing-message">
+            <strong>Não foi possível carregar os imóveis.</strong>
+            Verifique a conexão e as permissões de leitura da tabela no Supabase.
+          </div>
+        `;
+      }
+
+      const contador = document.getElementById('listingCount');
+
+      if (contador) contador.textContent = '';
+    }
   }
 
-  toggle.addEventListener('click', function() {
-    const open = menu.classList.toggle('open');
+  /* =========================================
+     FILTROS DE PESQUISA
+  ========================================= */
 
-    document.getElementById('topo').classList.toggle('menu-open', open);
-    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-    toggle.setAttribute('aria-label', open ? 'Fechar menu' : 'Abrir menu');
-  });
+  function prepararFiltros() {
+    const form = document.getElementById('searchForm');
+    const status = document.getElementById('formStatus');
 
-  menu.querySelectorAll('a').forEach(function(a) {
-    a.addEventListener('click', close);
-  });
+    if (!form) {
+      console.warn('Formulário de pesquisa não encontrado.');
+      return;
+    }
 
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') close();
-  });
-})();
+    function mostrarAviso(mensagem, tipo) {
+      if (!status) return;
 
-/* =========================================
-   CABEÇALHO E WHATSAPP FLUTUANTE
-========================================= */
+      status.textContent = mensagem;
+      status.className = 'form-status show ' + tipo;
+    }
 
-(function() {
-  const header = document.getElementById('topo');
-  const wa = document.getElementById('waFloat');
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
 
-  function onScroll() {
-    const y = window.scrollY;
+      const campoCidade = document.getElementById('cidade');
+      const campoFinalidade = document.getElementById('finalidade');
+      const campoTipo = document.getElementById('tipo');
+      const campoMinimo = document.getElementById('minimo');
+      const campoMaximo = document.getElementById('maximo');
 
-    header.classList.toggle('scrolled', y > 10);
+      const cidade = campoCidade ? campoCidade.value : '';
+      const finalidade = campoFinalidade ? campoFinalidade.value : '';
+      const tipo = campoTipo ? campoTipo.value : '';
+      const minimo = campoMinimo ? campoMinimo.value : '';
+      const maximo = campoMaximo ? campoMaximo.value : '';
 
-    const visible = y > 600;
-    wa.classList.toggle('show', visible);
-    wa.tabIndex = visible ? 0 : -1;
-  }
+      if (
+        minimo &&
+        maximo &&
+        Number(minimo) > Number(maximo)
+      ) {
+        mostrarAviso(
+          'O valor mínimo não pode ser maior que o valor máximo.',
+          'error'
+        );
 
-  window.addEventListener('scroll', onScroll, { passive: true });
-  onScroll();
-})();
+        if (campoMinimo) campoMinimo.focus();
+        return;
+      }
 
-/* =========================================
-   ANIMAÇÕES DAS SEÇÕES
-========================================= */
+      const filtrados = todosImoveis.filter(function (imovel) {
+        const preco = Number(imovel.preco) || 0;
 
-(function() {
-  const els = document.querySelectorAll('.reveal');
+        if (
+          !filtroTodos(cidade) &&
+          normalizar(imovel.cidade) !== normalizar(cidade)
+        ) return false;
 
-  if (!('IntersectionObserver' in window)) {
-    els.forEach(function(el) {
-      el.classList.add('in');
-    });
-    return;
-  }
+        if (
+          !filtroTodos(finalidade) &&
+          !finalidadeCompativel(imovel.finalidade, finalidade)
+        ) return false;
 
-  const io = new IntersectionObserver(function(entries) {
-    entries.forEach(function(en) {
-      if (en.isIntersecting) {
-        en.target.classList.add('in');
-        io.unobserve(en.target);
+        if (
+          !filtroTodos(tipo) &&
+          normalizar(imovel.tipo) !== normalizar(tipo)
+        ) return false;
+
+        if (minimo && preco < Number(minimo)) return false;
+        if (maximo && preco > Number(maximo)) return false;
+
+        return true;
+      });
+
+      mostrarImoveis(filtrados);
+
+      mostrarAviso(
+        filtrados.length
+          ? filtrados.length + ' imóvel(is) encontrado(s). Confira os resultados abaixo.'
+          : 'Nenhum imóvel corresponde aos filtros selecionados.',
+        'info'
+      );
+
+      const secao = document.getElementById('imoveis');
+
+      if (secao) {
+        secao.scrollIntoView({ behavior: 'smooth' });
       }
     });
-  }, {
-    threshold: 0.12,
-    rootMargin: '0px 0px -40px 0px'
-  });
 
-  els.forEach(function(el) {
-    io.observe(el);
-  });
+    form.addEventListener('input', function () {
+      if (status && status.classList.contains('error')) {
+        status.className = 'form-status';
+      }
+    });
+  }
+
+  /* =========================================
+     CATEGORIAS
+  ========================================= */
+
+  function prepararCategorias() {
+    document.querySelectorAll('.category[data-tipo]')
+      .forEach(function (card) {
+        card.addEventListener('click', function () {
+          const select = document.getElementById('tipo');
+
+          if (!select) return;
+
+          select.value = card.getAttribute('data-tipo');
+
+          const campo = document.getElementById('tipoField');
+
+          if (campo) {
+            campo.classList.remove('flash');
+            void campo.offsetWidth;
+            campo.classList.add('flash');
+          }
+        });
+      });
+  }
+
+  /* =========================================
+     MENU MOBILE
+  ========================================= */
+
+  function prepararMenu() {
+    const toggle = document.querySelector('.menu-toggle');
+    const menu = document.getElementById('menu');
+    const topo = document.getElementById('topo');
+
+    if (!toggle || !menu) return;
+
+    function fechar() {
+      menu.classList.remove('open');
+
+      if (topo) topo.classList.remove('menu-open');
+
+      toggle.setAttribute('aria-expanded', 'false');
+      toggle.setAttribute('aria-label', 'Abrir menu');
+    }
+
+    toggle.addEventListener('click', function () {
+      const aberto = menu.classList.toggle('open');
+
+      if (topo) {
+        topo.classList.toggle('menu-open', aberto);
+      }
+
+      toggle.setAttribute(
+        'aria-expanded',
+        aberto ? 'true' : 'false'
+      );
+
+      toggle.setAttribute(
+        'aria-label',
+        aberto ? 'Fechar menu' : 'Abrir menu'
+      );
+    });
+
+    menu.querySelectorAll('a').forEach(function (link) {
+      link.addEventListener('click', fechar);
+    });
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') fechar();
+    });
+  }
+
+  /* =========================================
+     CABEÇALHO E WHATSAPP FLUTUANTE
+  ========================================= */
+
+  function prepararCabecalho() {
+    const header = document.getElementById('topo');
+    const whatsapp = document.getElementById('waFloat');
+
+    function aoRolar() {
+      const y = window.scrollY;
+
+      if (header) {
+        header.classList.toggle('scrolled', y > 10);
+      }
+
+      if (whatsapp) {
+        const visivel = y > 600;
+
+        whatsapp.classList.toggle('show', visivel);
+        whatsapp.tabIndex = visivel ? 0 : -1;
+      }
+    }
+
+    window.addEventListener('scroll', aoRolar, { passive: true });
+    aoRolar();
+  }
+
+  /* =========================================
+     ANIMAÇÕES
+  ========================================= */
+
+  function prepararAnimacoes() {
+    const elementos = document.querySelectorAll('.reveal');
+
+    if (!('IntersectionObserver' in window)) {
+      elementos.forEach(function (el) {
+        el.classList.add('in');
+      });
+      return;
+    }
+
+    const observador = new IntersectionObserver(
+      function (entradas) {
+        entradas.forEach(function (entrada) {
+          if (entrada.isIntersecting) {
+            entrada.target.classList.add('in');
+            observador.unobserve(entrada.target);
+          }
+        });
+      },
+      {
+        threshold: 0.12,
+        rootMargin: '0px 0px -40px 0px'
+      }
+    );
+
+    elementos.forEach(function (el) {
+      observador.observe(el);
+    });
+  }
+
+  /* =========================================
+     EXECUTAR
+  ========================================= */
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', iniciar);
+  } else {
+    iniciar();
+  }
+
 })();
 </script>
