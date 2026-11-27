@@ -1,6 +1,4 @@
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <script>
 (function () {
   'use strict';
@@ -8,251 +6,44 @@
   document.documentElement.classList.add('js');
 
   /* =========================================
-     CONFIGURAÇÃO SUPABASE
+     ANDREW CORRETOR — CONFIGURAÇÃO
   ========================================= */
 
-  const SUPABASE_URL = 'https://gvcqmrkievpxqshfmfaj.supabase.co';
-  const SUPABASE_KEY = 'sb_publishable_E-rC-JV_EJRjHH1V_guhAA_kZ7dxfMo';
+  const SUPABASE_URL =
+    'https://gvcqmrkievpxqshfmfaj.supabase.co';
+
+  const SUPABASE_KEY =
+    'sb_publishable_E-rC-JV_EJRjHH1V_guhAA_kZ7dxfMo';
+
+  const WHATSAPP = '5537991198709';
 
   let db = null;
   let todosImoveis = [];
 
-  if (window.supabase && window.supabase.createClient) {
-    db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-  }
-
   /* =========================================
-     INICIALIZAÇÃO
+     CARREGAR SUPABASE
   ========================================= */
 
-  function iniciar() {
-    const ano = document.getElementById('year');
-
-    if (ano) {
-      ano.textContent = new Date().getFullYear();
-    }
-
-    prepararEstilos();
-    prepararVitrine();
-    prepararFiltros();
-    prepararCategorias();
-    prepararMenu();
-    prepararCabecalho();
-    prepararAnimacoes();
-
-    carregarImoveis();
-  }
-
-  /* =========================================
-     ESTILOS DA VITRINE
-  ========================================= */
-
-  function prepararEstilos() {
-    if (document.getElementById('estilo-vitrine-supabase')) return;
-
-    const estilo = document.createElement('style');
-    estilo.id = 'estilo-vitrine-supabase';
-
-    estilo.textContent = `
-      .listing-area { min-height: 180px; }
-
-      .listing-grid {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 24px;
+  function carregarBiblioteca() {
+    return new Promise(function (resolve, reject) {
+      if (window.supabase && window.supabase.createClient) {
+        resolve();
+        return;
       }
 
-      .listing-card {
-        background: var(--ink-2, #191919);
-        border: 1px solid var(--line, #333);
-        border-radius: 14px;
-        overflow: hidden;
-        transition: transform .25s, border-color .25s;
-      }
+      const script = document.createElement('script');
 
-      .listing-card:hover {
-        transform: translateY(-5px);
-        border-color: var(--gold, #c6a15b);
-      }
+      script.src =
+        'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
 
-      .listing-photo {
-        width: 100%;
-        aspect-ratio: 4 / 3;
-        object-fit: cover;
-        display: block;
-        background: var(--ink-3, #252525);
-      }
+      script.onload = resolve;
 
-      .listing-photo-empty {
-        aspect-ratio: 4 / 3;
-        display: grid;
-        place-items: center;
-        background: var(--ink-3, #252525);
-        color: var(--gold, #c6a15b);
-        font-size: 2.5rem;
-      }
+      script.onerror = function () {
+        reject(new Error('Não foi possível carregar o Supabase.'));
+      };
 
-      .listing-info { padding: 22px; }
-
-      .listing-tag {
-        display: inline-block;
-        color: var(--gold-light, #e2c27b);
-        font-size: .7rem;
-        font-weight: 800;
-        letter-spacing: .13em;
-        text-transform: uppercase;
-        margin-bottom: 9px;
-      }
-
-      .listing-title {
-        font-family: var(--serif, Georgia, serif);
-        font-size: 1.5rem;
-        color: var(--white, #fff);
-        margin: 0 0 9px;
-      }
-
-      .listing-location {
-        font-size: .84rem;
-        color: var(--muted, #aaa);
-        margin-bottom: 14px;
-      }
-
-      .listing-price {
-        font-size: 1.3rem;
-        font-weight: 800;
-        color: var(--gold-light, #e2c27b);
-        margin-bottom: 16px;
-      }
-
-      .listing-details {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 12px;
-        color: #d0c9bc;
-        font-size: .8rem;
-        padding: 13px 0;
-        border-top: 1px solid var(--line-soft, #333);
-        border-bottom: 1px solid var(--line-soft, #333);
-      }
-
-      .listing-description {
-        font-size: .86rem;
-        color: var(--muted, #aaa);
-        margin: 14px 0;
-        line-height: 1.6;
-      }
-
-      .listing-card .btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 100%;
-        margin-top: 5px;
-      }
-
-      .listing-message {
-        padding: 35px 20px;
-        text-align: center;
-        border: 1px solid var(--line, #333);
-        border-radius: 14px;
-        background: var(--ink-2, #191919);
-        color: var(--muted, #aaa);
-        grid-column: 1 / -1;
-      }
-
-      .listing-message strong {
-        display: block;
-        font-family: var(--serif, Georgia, serif);
-        font-size: 1.5rem;
-        color: var(--white, #fff);
-        margin-bottom: 8px;
-      }
-
-      .listing-count {
-        color: var(--muted, #aaa);
-        font-size: .85rem;
-        margin-bottom: 20px;
-      }
-
-      @media (max-width: 900px) {
-        .listing-grid {
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-      }
-
-      @media (max-width: 560px) {
-        .listing-grid {
-          grid-template-columns: 1fr;
-        }
-      }
-    `;
-
-    document.head.appendChild(estilo);
-  }
-
-  /* =========================================
-     PREPARAR A VITRINE
-  ========================================= */
-
-  function prepararVitrine() {
-    let area = document.querySelector('.listing-placeholder');
-
-    if (!area) {
-      const elementos = document.querySelectorAll('p, div');
-
-      for (const elemento of elementos) {
-        const texto = (elemento.textContent || '').toLowerCase();
-
-        if (
-          texto.includes('os filtros da página estão preparados') &&
-          !Array.from(elemento.children).some(function (filho) {
-            return (filho.textContent || '').toLowerCase()
-              .includes('os filtros da página estão preparados');
-          })
-        ) {
-          area = elemento;
-          break;
-        }
-      }
-    }
-
-    if (!area) {
-      area = document.getElementById('listingGrid');
-
-      if (area) {
-        area.innerHTML = '';
-        area.id = 'listingGrid';
-        area.className = 'listing-grid';
-      }
-    }
-
-    if (!area) {
-      const secao = document.getElementById('imoveis');
-
-      if (secao) {
-        area = document.createElement('div');
-        area.className = 'listing-area reveal';
-        secao.appendChild(area);
-      }
-    }
-
-    if (!area) {
-      console.error('Não foi encontrado o espaço da vitrine no HTML.');
-      return;
-    }
-
-    area.className = 'listing-area reveal';
-
-    area.innerHTML = `
-      <div id="listingCount" class="listing-count"></div>
-
-      <div id="listingGrid" class="listing-grid">
-        <div class="listing-message">
-          <strong>Carregando imóveis...</strong>
-          Aguarde enquanto buscamos os anúncios.
-        </div>
-      </div>
-    `;
+      document.head.appendChild(script);
+    });
   }
 
   /* =========================================
@@ -298,51 +89,30 @@
   }
 
   function obterFoto(imovel) {
-    let foto = imovel.foto_principal || '';
+    const foto = imovel.foto_principal;
 
-    function validarUrl(valor) {
-      if (typeof valor !== 'string' || !valor.trim()) return '';
+    if (!foto || typeof foto !== 'string') return '';
 
-      try {
-        const url = new URL(valor.trim());
+    try {
+      const url = new URL(foto);
 
-        if (url.protocol === 'https:' || url.protocol === 'http:') {
-          return url.href;
-        }
-      } catch (e) {}
-
-      return '';
-    }
-
-    let url = validarUrl(foto);
-
-    if (url) return url;
-
-    if (imovel.fotos) {
-      let fotos = imovel.fotos;
-
-      if (typeof fotos === 'string') {
-        try {
-          fotos = JSON.parse(fotos);
-        } catch (e) {
-          fotos = [fotos];
-        }
+      if (url.protocol === 'https:' || url.protocol === 'http:') {
+        return url.href;
       }
-
-      if (Array.isArray(fotos) && fotos.length) {
-        const primeira = fotos[0];
-
-        foto = typeof primeira === 'string'
-          ? primeira
-          : primeira?.url || primeira?.src || primeira?.path || '';
-
-        url = validarUrl(foto);
-
-        if (url) return url;
-      }
-    }
+    } catch (e) {}
 
     return '';
+  }
+
+  function filtroTodos(valor) {
+    const v = normalizar(valor);
+
+    return !v ||
+      v === 'todos' ||
+      v === 'todas' ||
+      v.includes('todas as cidades') ||
+      v.includes('todos os tipos') ||
+      v.includes('todas as finalidades');
   }
 
   function finalidadeCompativel(valor, filtro) {
@@ -356,21 +126,391 @@
     }
 
     if (f === 'alugar') {
-      return ['alugar', 'aluguel', 'locacao', 'locação'].includes(v);
+      return ['alugar', 'aluguel', 'locacao'].includes(v);
     }
 
     return v === f;
   }
 
-  function filtroTodos(valor) {
-    const v = normalizar(valor);
+  function mensagemWhatsApp(texto) {
+    return 'https://wa.me/' + WHATSAPP +
+      '?text=' + encodeURIComponent(texto);
+  }
 
-    return !v ||
-      v === 'todos' ||
-      v === 'todas' ||
-      v === 'todos os tipos' ||
-      v === 'todas as cidades' ||
-      v === 'todas as finalidades';
+  /* =========================================
+     ESTILOS DA VITRINE E DO ANÚNCIO
+  ========================================= */
+
+  function prepararEstilos() {
+    if (document.getElementById('estilo-andrew-atualizado')) return;
+
+    const estilo = document.createElement('style');
+
+    estilo.id = 'estilo-andrew-atualizado';
+
+    estilo.textContent = `
+      .listing-area {
+        min-height: 180px;
+      }
+
+      .listing-grid {
+        display: grid;
+        grid-template-columns: repeat(3,minmax(0,1fr));
+        gap: 24px;
+      }
+
+      .listing-card {
+        background: var(--ink-2,#191919);
+        border: 1px solid var(--line,#333);
+        border-radius: 14px;
+        overflow: hidden;
+        transition: transform .25s,border-color .25s;
+      }
+
+      .listing-card:hover {
+        transform: translateY(-5px);
+        border-color: var(--gold,#c6a15b);
+      }
+
+      .listing-photo,
+      .listing-photo-empty {
+        width: 100%;
+        aspect-ratio: 4/3;
+        object-fit: cover;
+        display: block;
+        background: var(--ink-3,#252525);
+      }
+
+      .listing-photo-empty {
+        display: grid;
+        place-items: center;
+        color: var(--gold);
+        font-size: 2.5rem;
+      }
+
+      .listing-info {
+        padding: 22px;
+      }
+
+      .listing-tag {
+        display: inline-block;
+        color: var(--gold-light,#e2c27b);
+        font-size: .7rem;
+        font-weight: 800;
+        letter-spacing: .13em;
+        text-transform: uppercase;
+        margin-bottom: 9px;
+      }
+
+      .listing-title {
+        font-family: var(--serif,Georgia,serif);
+        font-size: 1.5rem;
+        color: var(--white,#fff);
+        margin: 0 0 9px;
+      }
+
+      .listing-location {
+        font-size: .84rem;
+        color: var(--muted,#aaa);
+        margin-bottom: 14px;
+      }
+
+      .listing-price {
+        font-size: 1.3rem;
+        font-weight: 800;
+        color: var(--gold-light,#e2c27b);
+        margin-bottom: 16px;
+      }
+
+      .listing-details {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        color: #d0c9bc;
+        font-size: .8rem;
+        padding: 13px 0;
+        border-top: 1px solid var(--line-soft,#333);
+        border-bottom: 1px solid var(--line-soft,#333);
+      }
+
+      .listing-description {
+        font-size: .86rem;
+        color: var(--muted,#aaa);
+        margin: 14px 0;
+        line-height: 1.6;
+      }
+
+      .listing-card .btn {
+        width: 100%;
+        margin-top: 5px;
+      }
+
+      .listing-message {
+        padding: 35px 20px;
+        text-align: center;
+        border: 1px solid var(--line,#333);
+        border-radius: 14px;
+        background: var(--ink-2,#191919);
+        color: var(--muted,#aaa);
+        grid-column: 1/-1;
+      }
+
+      .listing-message strong {
+        display: block;
+        font-family: var(--serif,Georgia,serif);
+        font-size: 1.5rem;
+        color: var(--white,#fff);
+        margin-bottom: 8px;
+      }
+
+      .listing-count {
+        color: var(--muted,#aaa);
+        font-size: .85rem;
+        margin-bottom: 20px;
+      }
+
+      /* ANUNCIE SEU IMÓVEL */
+
+      .anuncio-etapas {
+        display: grid;
+        grid-template-columns: repeat(2,minmax(0,1fr));
+        gap: 18px;
+        margin: 25px 0;
+      }
+
+      .anuncio-etapa {
+        display: flex;
+        align-items: flex-start;
+        gap: 13px;
+        padding: 16px;
+        border-radius: 10px;
+        background: rgba(26,20,9,.07);
+        border: 1px solid rgba(26,20,9,.12);
+      }
+
+      .anuncio-numero {
+        flex: none;
+        width: 32px;
+        height: 32px;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        background: var(--ink);
+        color: var(--gold-light);
+        font-weight: 800;
+      }
+
+      .anuncio-etapa strong {
+        display: block;
+        font-size: .95rem;
+        margin-bottom: 4px;
+      }
+
+      .anuncio-etapa p {
+        font-size: .82rem;
+        line-height: 1.5;
+      }
+
+      .anuncio-observacao {
+        margin: 10px 0 24px;
+        padding: 20px;
+        border-radius: 10px;
+        background: rgba(255,255,255,.28);
+        border: 1px solid rgba(26,20,9,.15);
+      }
+
+      .anuncio-observacao h4 {
+        margin: 0 0 12px;
+        font-size: 1rem;
+      }
+
+      .anuncio-observacao ul {
+        padding-left: 20px;
+        margin: 0;
+      }
+
+      .anuncio-observacao li {
+        margin: 8px 0;
+        font-size: .86rem;
+        line-height: 1.5;
+      }
+
+      .admin-footer-link {
+        display: inline-block;
+        margin-top: 14px;
+        font-size: .76rem;
+        opacity: .55;
+        transition: opacity .2s;
+      }
+
+      .admin-footer-link:hover {
+        opacity: 1;
+        color: var(--gold-light);
+      }
+
+      @media(max-width:900px) {
+        .listing-grid {
+          grid-template-columns: repeat(2,minmax(0,1fr));
+        }
+      }
+
+      @media(max-width:560px) {
+        .listing-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .anuncio-etapas {
+          grid-template-columns: 1fr;
+        }
+      }
+    `;
+
+    document.head.appendChild(estilo);
+  }
+
+  /* =========================================
+     ÁREA ANUNCIE SEU IMÓVEL
+  ========================================= */
+
+  function prepararAnuncio() {
+    const area = document.querySelector('.path-sell');
+
+    if (!area) return;
+
+    area.innerHTML = `
+      <div class="path-ico">
+        <svg aria-hidden="true">
+          <use href="#i-sign"></use>
+        </svg>
+      </div>
+
+      <h3>Anuncie seu imóvel</h3>
+
+      <p>
+        Trabalhamos para divulgar seu imóvel e encontrar
+        o comprador ou locatário ideal.
+      </p>
+
+      <div class="anuncio-etapas">
+
+        <div class="anuncio-etapa">
+          <span class="anuncio-numero">1</span>
+          <div>
+            <strong>Fale com a gente</strong>
+            <p>Entre em contato pelo WhatsApp e comece seu anúncio.</p>
+          </div>
+        </div>
+
+        <div class="anuncio-etapa">
+          <span class="anuncio-numero">2</span>
+          <div>
+            <strong>Envie fotos e documentos</strong>
+            <p>Compartilhe as informações e os materiais do imóvel.</p>
+          </div>
+        </div>
+
+        <div class="anuncio-etapa">
+          <span class="anuncio-numero">3</span>
+          <div>
+            <strong>Faça o aceite</strong>
+            <p>Confira e aceite as condições para trabalharmos com seu imóvel.</p>
+          </div>
+        </div>
+
+        <div class="anuncio-etapa">
+          <span class="anuncio-numero">4</span>
+          <div>
+            <strong>Nossa rede trabalha seu imóvel</strong>
+            <p>Divulgamos seu imóvel para ampliar as oportunidades de negociação.</p>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="anuncio-observacao">
+        <h4>Tenha estas informações em mãos antes de chamar:</h4>
+
+        <ul>
+          <li>
+            <strong>Fotos do imóvel:</strong>
+            quanto mais fotos, melhor. Inclua todos os cômodos,
+            fachada, quintal e áreas externas.
+          </li>
+
+          <li>
+            <strong>Documento do imóvel:</strong>
+            matrícula ou escritura.
+          </li>
+
+          <li>
+            <strong>Valor pretendido:</strong>
+            informe quanto deseja receber pela venda ou pelo aluguel.
+          </li>
+        </ul>
+      </div>
+
+      <a
+        class="btn btn-dark"
+        href="${mensagemWhatsApp('Olá, Andrew! Quero anunciar meu imóvel. Gostaria de saber como funciona.')}"
+        target="_blank"
+        rel="noopener"
+      >
+        <svg aria-hidden="true">
+          <use href="#i-whats"></use>
+        </svg>
+        Fale com a gente pelo WhatsApp
+      </a>
+    `;
+  }
+
+  /* =========================================
+     ACESSO ADMINISTRATIVO
+  ========================================= */
+
+  function prepararAcessoAdmin() {
+    const colunas = document.querySelectorAll('.foot-top > div');
+
+    if (!colunas.length) return;
+
+    const contato = colunas[colunas.length - 1];
+
+    if (!contato || contato.querySelector('.admin-footer-link')) return;
+
+    const link = document.createElement('a');
+
+    link.href = 'admin.html';
+    link.className = 'admin-footer-link';
+    link.textContent = 'Área do administrador';
+
+    contato.appendChild(link);
+  }
+
+  /* =========================================
+     PREPARAR VITRINE
+  ========================================= */
+
+  function prepararVitrine() {
+    const area = document.querySelector('.listing-placeholder');
+
+    if (!area) {
+      console.error('Área da vitrine não encontrada.');
+      return;
+    }
+
+    area.className = 'listing-area reveal in';
+
+    area.innerHTML = `
+      <div id="listingCount" class="listing-count"></div>
+
+      <div id="listingGrid" class="listing-grid">
+
+        <div class="listing-message">
+          <strong>Carregando imóveis...</strong>
+          Aguarde enquanto buscamos os anúncios disponíveis.
+        </div>
+
+      </div>
+    `;
   }
 
   /* =========================================
@@ -384,16 +524,17 @@
     if (!grid) return;
 
     if (contador) {
-      contador.textContent = lista.length === 1
-        ? '1 imóvel encontrado'
-        : lista.length + ' imóveis encontrados';
+      contador.textContent =
+        lista.length === 1
+          ? '1 imóvel encontrado'
+          : lista.length + ' imóveis encontrados';
     }
 
     if (!lista.length) {
       grid.innerHTML = `
         <div class="listing-message">
           <strong>Nenhum imóvel encontrado.</strong>
-          Tente modificar os filtros ou entre em contato pelo WhatsApp.
+          Entre em contato para conhecer outras oportunidades.
         </div>
       `;
       return;
@@ -401,19 +542,22 @@
 
     grid.innerHTML = lista.map(function (imovel) {
       const foto = obterFoto(imovel);
+
       const titulo = escapar(imovel.titulo || 'Imóvel disponível');
       const tipo = escapar(imovel.tipo || 'Imóvel');
       const cidade = escapar(imovel.cidade || '');
       const bairro = escapar(imovel.bairro || '');
       const preco = formatarPreco(imovel.preco);
+
       const quartos = Number(imovel.quartos) || 0;
-      const banhos = Number(imovel.banhos) || 0;
+      const banheiros = Number(imovel.banheiros) || 0;
       const vagas = Number(imovel.vagas) || 0;
       const area = Number(imovel.area) || 0;
+
       const finalidade = escapar(imovel.finalidade || '');
-      const descricao = escapar(
-        imovel.descricao || imovel.especificacao || ''
-      );
+
+      const descricao = escapar(imovel.descricao || '');
+
       const codigo = escapar(imovel.id);
 
       const localizacao = [bairro, cidade]
@@ -422,37 +566,34 @@
 
       const detalhes = [
         quartos ? quartos + ' quarto(s)' : '',
-        banhos ? banhos + ' banheiro(s)' : '',
+        banheiros ? banheiros + ' banheiro(s)' : '',
         vagas ? vagas + ' vaga(s)' : '',
         area ? area + ' m²' : ''
       ].filter(Boolean);
 
-      const mensagem = encodeURIComponent(
+      const mensagem = mensagemWhatsApp(
         'Olá, Andrew! Tenho interesse no imóvel "' +
         (imovel.titulo || 'Imóvel disponível') +
         '". Código: ' + imovel.id +
         '. Poderia me passar mais informações?'
       );
 
-      const imagem = foto
-        ? `
-          <img
-            class="listing-photo"
-            src="${escapar(foto)}"
-            alt="${titulo}"
-            loading="lazy"
-            onerror="
-              this.style.display='none';
-              this.nextElementSibling.style.display='grid';
-            "
-          >
-        `
-        : '';
-
       return `
         <article class="listing-card">
 
-          ${imagem}
+          ${
+            foto
+              ? `
+                <img
+                  class="listing-photo"
+                  src="${escapar(foto)}"
+                  alt="${titulo}"
+                  loading="lazy"
+                  onerror="this.style.display='none';this.nextElementSibling.style.display='grid';"
+                >
+              `
+              : ''
+          }
 
           <div
             class="listing-photo-empty"
@@ -486,23 +627,31 @@
 
             ${
               detalhes.length
-                ? `<div class="listing-details">${detalhes.map(escapar).join(' • ')}</div>`
+                ? `
+                  <div class="listing-details">
+                    ${detalhes.map(escapar).join(' • ')}
+                  </div>
+                `
                 : ''
             }
 
             ${
               descricao
-                ? `<p class="listing-description">${
-                    descricao.length > 140
-                      ? descricao.slice(0, 140) + '...'
-                      : descricao
-                  }</p>`
+                ? `
+                  <p class="listing-description">
+                    ${
+                      descricao.length > 140
+                        ? descricao.slice(0,140) + '...'
+                        : descricao
+                    }
+                  </p>
+                `
                 : ''
             }
 
             <a
               class="btn btn-gold"
-              href="https://wa.me/5537991198709?text=${mensagem}"
+              href="${mensagem}"
               target="_blank"
               rel="noopener"
             >
@@ -519,21 +668,16 @@
   }
 
   /* =========================================
-     BUSCAR IMÓVEIS NO SUPABASE
+     BUSCAR IMÓVEIS PUBLICADOS
   ========================================= */
 
   async function carregarImoveis() {
     const grid = document.getElementById('listingGrid');
 
     if (!db) {
-      if (grid) {
-        grid.innerHTML = `
-          <div class="listing-message">
-            <strong>Conexão indisponível.</strong>
-            Não foi possível iniciar a conexão com o banco de dados.
-          </div>
-        `;
-      }
+      mostrarErro(
+        'Não foi possível conectar ao banco de dados.'
+      );
       return;
     }
 
@@ -541,9 +685,12 @@
       const resultado = await db
         .from('imoveis')
         .select('*')
+        .eq('status', 'ao vivo')
         .order('created_at', { ascending: false });
 
-      if (resultado.error) throw resultado.error;
+      if (resultado.error) {
+        throw resultado.error;
+      }
 
       todosImoveis = resultado.data || [];
 
@@ -552,33 +699,37 @@
     } catch (erro) {
       console.error('Erro ao carregar imóveis:', erro);
 
-      if (grid) {
-        grid.innerHTML = `
-          <div class="listing-message">
-            <strong>Não foi possível carregar os imóveis.</strong>
-            Verifique a conexão e as permissões de leitura da tabela no Supabase.
-          </div>
-        `;
-      }
+      mostrarErro(
+        'Não foi possível carregar os imóveis. Verifique as permissões da tabela no Supabase.'
+      );
+    }
+  }
 
-      const contador = document.getElementById('listingCount');
+  function mostrarErro(mensagem) {
+    const grid = document.getElementById('listingGrid');
+    const contador = document.getElementById('listingCount');
 
-      if (contador) contador.textContent = '';
+    if (contador) contador.textContent = '';
+
+    if (grid) {
+      grid.innerHTML = `
+        <div class="listing-message">
+          <strong>Não foi possível carregar os imóveis.</strong>
+          ${escapar(mensagem)}
+        </div>
+      `;
     }
   }
 
   /* =========================================
-     FILTROS DE PESQUISA
+     FILTROS
   ========================================= */
 
   function prepararFiltros() {
     const form = document.getElementById('searchForm');
     const status = document.getElementById('formStatus');
 
-    if (!form) {
-      console.warn('Formulário de pesquisa não encontrado.');
-      return;
-    }
+    if (!form) return;
 
     function mostrarAviso(mensagem, tipo) {
       if (!status) return;
@@ -590,17 +741,12 @@
     form.addEventListener('submit', function (e) {
       e.preventDefault();
 
-      const campoCidade = document.getElementById('cidade');
-      const campoFinalidade = document.getElementById('finalidade');
-      const campoTipo = document.getElementById('tipo');
-      const campoMinimo = document.getElementById('minimo');
-      const campoMaximo = document.getElementById('maximo');
+      const cidade = document.getElementById('cidade')?.value || '';
+      const finalidade = document.getElementById('finalidade')?.value || '';
+      const tipo = document.getElementById('tipo')?.value || '';
 
-      const cidade = campoCidade ? campoCidade.value : '';
-      const finalidade = campoFinalidade ? campoFinalidade.value : '';
-      const tipo = campoTipo ? campoTipo.value : '';
-      const minimo = campoMinimo ? campoMinimo.value : '';
-      const maximo = campoMaximo ? campoMaximo.value : '';
+      const minimo = document.getElementById('minimo')?.value || '';
+      const maximo = document.getElementById('maximo')?.value || '';
 
       if (
         minimo &&
@@ -612,7 +758,8 @@
           'error'
         );
 
-        if (campoMinimo) campoMinimo.focus();
+        document.getElementById('minimo')?.focus();
+
         return;
       }
 
@@ -635,6 +782,7 @@
         ) return false;
 
         if (minimo && preco < Number(minimo)) return false;
+
         if (maximo && preco > Number(maximo)) return false;
 
         return true;
@@ -681,7 +829,9 @@
 
           if (campo) {
             campo.classList.remove('flash');
+
             void campo.offsetWidth;
+
             campo.classList.add('flash');
           }
         });
@@ -702,7 +852,9 @@
     function fechar() {
       menu.classList.remove('open');
 
-      if (topo) topo.classList.remove('menu-open');
+      if (topo) {
+        topo.classList.remove('menu-open');
+      }
 
       toggle.setAttribute('aria-expanded', 'false');
       toggle.setAttribute('aria-label', 'Abrir menu');
@@ -736,7 +888,7 @@
   }
 
   /* =========================================
-     CABEÇALHO E WHATSAPP FLUTUANTE
+     CABEÇALHO E WHATSAPP
   ========================================= */
 
   function prepararCabecalho() {
@@ -754,11 +906,15 @@
         const visivel = y > 600;
 
         whatsapp.classList.toggle('show', visivel);
+
         whatsapp.tabIndex = visivel ? 0 : -1;
       }
     }
 
-    window.addEventListener('scroll', aoRolar, { passive: true });
+    window.addEventListener('scroll', aoRolar, {
+      passive: true
+    });
+
     aoRolar();
   }
 
@@ -773,6 +929,7 @@
       elementos.forEach(function (el) {
         el.classList.add('in');
       });
+
       return;
     }
 
@@ -781,6 +938,7 @@
         entradas.forEach(function (entrada) {
           if (entrada.isIntersecting) {
             entrada.target.classList.add('in');
+
             observador.unobserve(entrada.target);
           }
         });
@@ -797,8 +955,44 @@
   }
 
   /* =========================================
-     EXECUTAR
+     INICIALIZAÇÃO GERAL
   ========================================= */
+
+  async function iniciar() {
+    const ano = document.getElementById('year');
+
+    if (ano) {
+      ano.textContent = new Date().getFullYear();
+    }
+
+    prepararEstilos();
+    prepararAnuncio();
+    prepararAcessoAdmin();
+    prepararVitrine();
+    prepararFiltros();
+    prepararCategorias();
+    prepararMenu();
+    prepararCabecalho();
+    prepararAnimacoes();
+
+    try {
+      await carregarBiblioteca();
+
+      db = window.supabase.createClient(
+        SUPABASE_URL,
+        SUPABASE_KEY
+      );
+
+      await carregarImoveis();
+
+    } catch (erro) {
+      console.error('Falha na inicialização:', erro);
+
+      mostrarErro(
+        'Verifique sua conexão com a internet e tente novamente.'
+      );
+    }
+  }
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', iniciar);
